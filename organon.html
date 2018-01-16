@@ -19,7 +19,7 @@
           "LinkDrawn": maybeChangeLinkCategory,     // these two DiagramEvents call a
           "LinkRelinked": maybeChangeLinkCategory,  // function that is defined below
           // allow double-click in background to create a new node
-          "clickCreatingTool.archetypeNodeData": { text: "Node", color: "white" },
+          "clickCreatingTool.archetypeNodeData": { text: "Node", color: "gold" },
 
           // allow Ctrl-G to call groupSelection()
           "commandHandler.archetypeGroupData": { text: "Group", isGroup: true, color: "blue" },
@@ -28,10 +28,157 @@
           // enable undo & redo
           "undoManager.isEnabled": true
         });
+    // First, define the shared context menu for all Nodes, Links, and Groups.
 
+    // To simplify this code we define a function for creating a context menu button:
+    function makeButton(text, action, visiblePredicate) {
+      return $("ContextMenuButton",
+               $(go.TextBlock, text),
+               { click: action },
+               // don't bother with binding GraphObject.visible if there's no predicate
+               visiblePredicate ? new go.Binding("visible", "", function(o, e) { return o.diagram ? visiblePredicate(o, e) : false; }).ofObject() : {});
+    }
+    function changeNodeBackground(obj, color) {
+       var contextmenu = obj.part;  // the Button is in the context menu Adornment
+       var part = contextmenu.adornedPart;  // the adornedPart is the Part that the context menu adorns
+       // now can do something with PART, or with its data, or with the Adornment (the context menu)
+       if (part instanceof go.Node) {
+            var shape = part.findObject("SHAPE");
+            shape.fill = color;
+        }
+    }
+    // a context menu is an Adornment with a bunch of buttons in them
+    var nodeContextMenu =
+      $(go.Adornment, "Vertical",
+          makeButton("Propriétés",
+                     function(e, obj) {  // OBJ is this Button
+                       var contextmenu = obj.part;  // the Button is in the context menu Adornment
+                       var part = contextmenu.adornedPart;  // the adornedPart is the Part that the context menu adorns
+                       // now can do something with PART, or with its data, or with the Adornment (the context menu)
+                       if (part instanceof go.Link) alert(linkInfo(part.data));
+                       else if (part instanceof go.Group) alert(groupInfo(contextmenu));
+                       else alert(nodeInfo(part.data));
+                     }),
+          makeButton("Conclusion",
+                     function(e, obj) {  // OBJ is this Button
+                       var contextmenu = obj.part;  // the Button is in the context menu Adornment
+                       var part = contextmenu.adornedPart;  // the adornedPart is the Part that the context menu adorns
+                       // now can do something with PART, or with its data, or with the Adornment (the context menu)
+                       if (part instanceof go.Node) {
+                        if (part.data.conclusion) {
+                            changeNodeBackground(obj,"gold");
+                            part.data.conclusion = false
+                        }
+                        else if (!part.data.conclusion){
+                            changeNodeBackground(obj,"blue");
+                            part.data.conclusion = true
+                        }
+                        else alert("Erreur")
+                       }
+                     }),
+          makeButton("Niveau 1",function(e,obj){           
+            changeNodeBackground(obj,"gold")
+          }),
+          makeButton("Niveau 2",function(e,obj){           
+            changeNodeBackground(obj,"tomato")
+          }),
+          makeButton("Niveau 3",function(e,obj){           
+            changeNodeBackground(obj,"mediumslateblue")
+          }),
+          makeButton("Niveau 4",function(e,obj){           
+            changeNodeBackground(obj,"lightslategray")
+          }),
+          makeButton("Niveau 5",function(e,obj){           
+            changeNodeBackground(obj,"mediumaquamarine")
+          }),
+          
+          makeButton("Couper",
+                     function(e, obj) { e.diagram.commandHandler.cutSelection(); },
+                     function(o) { return o.diagram.commandHandler.canCutSelection(); }),
+          makeButton("Copier",
+                     function(e, obj) { e.diagram.commandHandler.copySelection(); },
+                     function(o) { return o.diagram.commandHandler.canCopySelection(); }),
+          makeButton("Coller",
+                     function(e, obj) { e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint); },
+                     function(o) { return o.diagram.commandHandler.canPasteSelection(); }),
+          makeButton("Supprimer",
+                     function(e, obj) { e.diagram.commandHandler.deleteSelection(); },
+                     function(o) { return o.diagram.commandHandler.canDeleteSelection(); }),
+          makeButton("Annuler",
+                     function(e, obj) { e.diagram.commandHandler.undo(); },
+                     function(o) { return o.diagram.commandHandler.canUndo(); }),
+          makeButton("Refaire",
+                     function(e, obj) { e.diagram.commandHandler.redo(); },
+                     function(o) { return o.diagram.commandHandler.canRedo(); }),
+          makeButton("Grouper",
+                     function(e, obj) { e.diagram.commandHandler.groupSelection(); },
+                     function(o) { return o.diagram.commandHandler.canGroupSelection(); }),
+          makeButton("Dégrouper",
+                     function(e, obj) { e.diagram.commandHandler.ungroupSelection(); },
+                     function(o) { return o.diagram.commandHandler.canUngroupSelection(); })
+      );
+      var partContextMenu =
+      $(go.Adornment, "Vertical",
+          makeButton("Propriétés",
+                     function(e, obj) {  // OBJ is this Button
+                       var contextmenu = obj.part;  // the Button is in the context menu Adornment
+                       var part = contextmenu.adornedPart;  // the adornedPart is the Part that the context menu adorns
+                       // now can do something with PART, or with its data, or with the Adornment (the context menu)
+                       if (part instanceof go.Link) alert(linkInfo(part.data));
+                       else if (part instanceof go.Group) alert(groupInfo(contextmenu));
+                       else alert(nodeInfo(part.data));
+                     }),
+          makeButton("Couper",
+                     function(e, obj) { e.diagram.commandHandler.cutSelection(); },
+                     function(o) { return o.diagram.commandHandler.canCutSelection(); }),
+          makeButton("Copier",
+                     function(e, obj) { e.diagram.commandHandler.copySelection(); },
+                     function(o) { return o.diagram.commandHandler.canCopySelection(); }),
+          makeButton("Coller",
+                     function(e, obj) { e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint); },
+                     function(o) { return o.diagram.commandHandler.canPasteSelection(); }),
+          makeButton("Supprimer",
+                     function(e, obj) { e.diagram.commandHandler.deleteSelection(); },
+                     function(o) { return o.diagram.commandHandler.canDeleteSelection(); }),
+          makeButton("Annuler",
+                     function(e, obj) { e.diagram.commandHandler.undo(); },
+                     function(o) { return o.diagram.commandHandler.canUndo(); }),
+          makeButton("Refaire",
+                     function(e, obj) { e.diagram.commandHandler.redo(); },
+                     function(o) { return o.diagram.commandHandler.canRedo(); }),
+          makeButton("Grouper",
+                     function(e, obj) { e.diagram.commandHandler.groupSelection(); },
+                     function(o) { return o.diagram.commandHandler.canGroupSelection(); }),
+          makeButton("Dégrouper",
+                     function(e, obj) { e.diagram.commandHandler.ungroupSelection(); },
+                     function(o) { return o.diagram.commandHandler.canUngroupSelection(); })
+      );
+     //Functions to display info for different parts
+     function groupInfo(adornment) {  // takes the tooltip or context menu, not a group node data object
+      var g = adornment.adornedPart;  // get the Group that the tooltip adorns
+      var mems = g.memberParts.count;
+      var links = 0;
+      g.memberParts.each(function(part) {
+        if (part instanceof go.Link) links++;
+      });
+      return "Group " + g.data.key + ": " + g.data.text + "\n" + mems + " members including " + links + " links";
+    }
+    function nodeInfo(d) {  // Tooltip info for a node data object
+      var str = "Node " + d.key + ": " + d.text + "\n";
+      if (d.group)
+        str += "member of " + d.group;
+      else
+        str += "top-level node";
+      return str;
+    }
+     function linkInfo(d) {  // Tooltip info for a link data object
+      return "Link:\nfrom " + d.from + " to " + d.to;
+    }
     // when the document is modified, add a "*" to the title and enable the "Save" button
     myDiagram.addDiagramListener("Modified", function(e) {
       var button = document.getElementById("SaveButton");
+      if (button) button.disabled = !myDiagram.isModified;
+      button = document.getElementById("ExportButton");
       if (button) button.disabled = !myDiagram.isModified;
       var idx = document.title.indexOf("*");
       if (myDiagram.isModified) {
@@ -40,28 +187,44 @@
         if (idx >= 0) document.title = document.title.substr(0, idx);
       }
     });
+   
+
+    
 
   // define the Node template
     myDiagram.nodeTemplate =
       $(go.Node, "Auto",
         new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+        new go.Binding("visible", "visible").makeTwoWay(),
+        new go.Binding("conclusion","conclusion",Boolean).makeTwoWay(),
         // define the node's outer shape, which will surround the TextBlock
         $(go.Shape, "RoundedRectangle",
-          {
-            parameter1: 20,  // the corner has a large radius
-            fill: $(go.Brush, "Linear", { 0: "rgb(254, 201, 0)", 1: "rgb(254, 162, 0)" }),
-            stroke: null,
-            portId: "",  // this Shape is the Node's port, not the whole Node
-            fromLinkable: true, fromLinkableSelfNode: true, fromLinkableDuplicates: true,
-            toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true,
-            cursor: "pointer"
-          }),
-        $(go.TextBlock,
-          {
-            font: "bold 11pt helvetica, bold arial, sans-serif",
-            editable: true  // editing the text automatically updates the model data
-          },
-          new go.Binding("text").makeTwoWay())
+              {
+                parameter1: 20,  // the corner has a large radius
+                fill: "gold",
+                stroke: null,
+                portId: "",  // this Shape is the Node's port, not the whole Node
+                fromLinkable: true, fromLinkableSelfNode: true, fromLinkableDuplicates: true,
+                toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true,
+                cursor: "pointer",
+                name: "SHAPE"
+              },
+              new go.Binding("fill", "color").makeTwoWay()
+              ),
+        $(go.Panel, "Vertical",
+            $(go.TextBlock,
+              {
+                font: "bold 11pt helvetica, bold arial, sans-serif",
+                editable: true  // editing the text automatically updates the model data
+              },
+              new go.Binding("text").makeTwoWay()
+              ),
+            $("TreeExpanderButton")
+        ),
+        { 
+          // the same context menu Adornment is shared by all groups
+          contextMenu: nodeContextMenu
+        }
       );
 
     // unlike the normal selection Adornment, this one includes a Button
@@ -69,8 +232,9 @@
       $(go.Adornment, "Spot",
         $(go.Panel, "Auto",
           $(go.Shape, { fill: null, stroke: "blue", strokeWidth: 2 }),
-          $(go.Placeholder)  // a Placeholder sizes itself to the selected Node
-        )//,
+          $(go.Placeholder) // a Placeholder sizes itself to the selected Node
+        ),
+
         // the button to create a "next" node, at the top-right corner
         //$("Button",
         //  {
@@ -83,6 +247,7 @@
 
     // clicking the button inserts a new node to the right of the selected node,
     // and adds a link to that new node
+    
     function addNodeAndLink(e, obj) {
       var adornment = obj.part;
       var diagram = e.diagram;
@@ -123,8 +288,9 @@
     // This node supports user-drawn links to and from the label node.
     myDiagram.nodeTemplateMap.add("LinkLabel",
       $("Node",
-        { selectable: false, avoidable: false,
-          layerName: "Foreground" },  // always have link label nodes in front of Links
+        { selectable: false, avoidable: true,
+          layerName: "Foreground" }, // always have link label nodes in front of Links
+            new go.Binding("visible", "visible").makeTwoWay(),
         $("Shape", "Ellipse",
           { width: 5, height: 5, stroke: null,
             portId: "", fromLinkable: true, toLinkable: true, cursor: "pointer" })
@@ -155,17 +321,31 @@
             },
             // editing the text automatically updates the model data
             new go.Binding("text").makeTwoWay())
-        )
+        ),
+        { 
+          // the same context menu Adornment is shared by all groups
+          contextMenu: partContextMenu
+        }
       );
 
     // This template shows links connecting with label nodes as green and arrow-less.
     myDiagram.linkTemplateMap.add("linkToLink",
-      $("Link",
-        {curve: go.Link.JumpGap, adjusting: go.Link.Stretch,corner:15,
+      $(go.Link,  // the whole link panel
+        {
+          curve: go.Link.JumpGap, adjusting: go.Link.Stretch,corner:15,
           reshapable: true, relinkableFrom: true, relinkableTo: true,
           toShortLength: 3,
-	  routing: go.Link.AvoidsNodes  },
-        $("Shape", { stroke: "#2D9945", strokeWidth: 2 })
+	  routing: go.Link.AvoidsNodes 
+        },
+        new go.Binding("points").makeTwoWay(),
+        new go.Binding("curviness"),
+        $(go.Shape,  // the link shape
+          { strokeWidth: 1.5 }),
+        { 
+          // the same context menu Adornment is shared by all groups
+          contextMenu: partContextMenu
+        }
+	  
       ));
     myDiagram.groupTemplate =
       $(go.Group, "Vertical",
@@ -173,14 +353,18 @@
           ungroupable: true,
           fromSpot: go.Spot.Bottom,  // coming out from middle-right
         toSpot: go.Spot.Top  },  // enable Ctrl-Shift-G to ungroup a selected Group
-        $(go.TextBlock,
-          {
-            font: "bold 19px sans-serif",
-            isMultiline: false,  // don't allow newlines in text
-            editable: true  // allow in-place editing by user
-          },
-          new go.Binding("text", "text").makeTwoWay(),
-          new go.Binding("stroke", "color")),
+        $(go.Panel, "Horizontal",
+             $(go.TextBlock,
+              {
+                font: "bold 19px sans-serif",
+                isMultiline: false,  // don't allow newlines in text
+                editable: true  // allow in-place editing by user
+              },
+              new go.Binding("text", "text").makeTwoWay(),
+              new go.Binding("stroke", "color")),
+            $("SubGraphExpanderButton"),
+            $("TreeExpanderButton")
+        ),
         $(go.Panel, "Auto",
           { name: "PANEL" },
           $(go.Shape, "RoundedRectangle",  // the rectangular shape around the members
@@ -193,7 +377,11 @@
               toLinkable: true, toLinkableSelfNode: true, toLinkableDuplicates: true
             }),
           $(go.Placeholder, { margin: 10, background: "transparent" })  // represents where the members are
-        )
+        ),
+        { 
+          // the same context menu Adornment is shared by all groups
+          contextMenu: partContextMenu
+        }
       );
 
     // GraphLinksModel support for link label nodes requires specifying two properties.
@@ -212,18 +400,43 @@
       var linktolink = (link.fromNode.isLinkLabel || link.toNode.isLinkLabel);
       e.diagram.model.setCategoryForLinkData(link.data, (linktolink ? "linkToLink" : ""));
     }
-
-    load();
+     // provide a context menu for the background of the Diagram, when not over any Part
+    myDiagram.contextMenu =
+      $(go.Adornment, "Vertical",
+          makeButton("Coller",
+                     function(e, obj) { e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint); },
+                     function(o) { return o.diagram.commandHandler.canPasteSelection(); }),
+          makeButton("Annuler",
+                     function(e, obj) { e.diagram.commandHandler.undo(); },
+                     function(o) { return o.diagram.commandHandler.canUndo(); }),
+          makeButton("Refaire",
+                     function(e, obj) { e.diagram.commandHandler.redo(); },
+                     function(o) { return o.diagram.commandHandler.canRedo(); })
+      );
+    importfromjson();
   }
 
   // Show the diagram's model in JSON format
-  function save() {
+  function exporttojson() {
     document.getElementById("mySavedModel").value = myDiagram.model.toJson();
     myDiagram.isModified = false;
   }
-  function load() {
+  function importfromjson() {
     myDiagram.model = go.Model.fromJson(document.getElementById("mySavedModel").value);
   }
+  function download(text, name, type) {
+    var a = document.createElement("a");
+    var file = new Blob([text], {type: type});
+    a.href = URL.createObjectURL(file);
+    a.download = name;
+    a.click();
+}
+  function savetofile(){
+    download(myDiagram.model.toJson(), 'organon.json', 'text/plain');
+
+  }
+
+  
 </script>
 </head>
 <body onload="init()">
@@ -237,48 +450,71 @@
       Tu peux sélectionner plusieurs énoncés et les grouper avec Ctrl+G (peut-être Cmd+G ? sur ton mac). Ctrl+Shift+G pour dégrouper.
     </p>
     <div>
-      <div>
-        <button id="SaveButton" onclick="save()">Exporter</button>
-        <button onclick="load()">Importer</button>
+        <div>
+        <button id="ExportButton" onclick="exporttojson()">Exporter</button>
+        <button onclick="importfromjson()">Importer</button>
         Diagram.model en format JSON:<br />
+      </div>
+      <div>
+        <button id="SaveButton" onclick="savetofile()">Télécharger</button>
+        <input type="file" id="files" name="file"  />
+<output id="list"></output>
+
+<script>
+  function handleFileSelect(evt) {
+    var f = evt.target.files[0]; // FileList object
+
+    // files is a FileList of File objects. List some properties.
+    var reader = new FileReader();
+    // Closure to capture the file information.
+      reader.onload = (function(theFile) {
+        return function(e) {
+           myDiagram.model = go.Model.fromJson(e.target.result)
+        };
+      })(f);
+    reader.readAsText(f)
+  }
+
+  document.getElementById('files').addEventListener('change', handleFileSelect, false);
+</script>
       </div>
       <textarea id="mySavedModel" style="width:100%;height:400px">
 { "class": "go.GraphLinksModel",
   "linkLabelKeysProperty": "labelKeys",
   "nodeDataArray": [ 
-{"text":"A≡~B", "color":"white", "key":-1, "loc":"-113 -164"},
-{"text":"(C∧D)⊃B", "color":"white", "key":-2, "loc":"108 -165"},
-{"text":"C", "color":"white", "key":-3, "loc":"320.48750000000007 -166"},
-{"text":"A", "color":"white", "key":-4, "loc":"-116 -85", "group":-20},
-{"text":"~B", "color":"white", "key":-5, "loc":"131 -86", "group":-20},
+{"text":"A≡~B", "color":"gold", "conclusion":false, "key":-1, "loc":"-142.39999999999998 -178.69999999999996"},
+{"text":"(C∧D)⊃B", "color":"gold", "conclusion":false, "key":-2, "loc":"108 -165"},
+{"text":"C", "color":"gold", "conclusion":false, "key":-3, "loc":"320.48750000000007 -166"},
+{"text":"A", "color":"gold", "conclusion":false, "key":-4, "loc":"-122.29999999999995 -62.949999999999974", "group":-20},
+{"text":"~B", "color":"gold", "conclusion":false, "key":-5, "loc":"124.69999999999999 -63.95000000000002", "group":-20},
 {"category":"LinkLabel", "key":-6, "group":-20},
 {"category":"LinkLabel", "key":-7},
-{"text":"~(C∧D)", "color":"white", "key":-8, "loc":"304.28999999999996 -85.995", "group":-20},
+{"text":"~(C∧D)", "color":"gold", "conclusion":false, "key":-8, "loc":"297.99 -63.94499999999999", "group":-20},
 {"category":"LinkLabel", "key":-9, "group":-20},
 {"category":"LinkLabel", "key":-10},
-{"text":"D", "color":"white", "key":-11, "loc":"-113.55750000000002 4.409999999999968", "group":-17},
-{"text":"C∧D", "loc":"123.9275 3.3075000000000045", "key":-12, "group":-17},
+{"text":"D", "color":"gold", "conclusion":false, "key":-11, "loc":"-115.85749999999994 42.45999999999998", "group":-17},
+{"text":"C∧D", "loc":"121.62750000000004 41.357500000000016", "key":-12, "group":-17},
 {"category":"LinkLabel", "key":-13, "group":-17},
 {"category":"LinkLabel", "key":-14},
-{"text":"⊥", "color":"white", "key":-15, "loc":"312.0075 2.204999999999984", "group":-17},
+{"text":"⊥", "color":"gold", "conclusion":false, "key":-15, "loc":"309.7075000000002 40.254999999999995", "group":-17},
 {"category":"LinkLabel", "key":-16, "group":-17},
 {"text":"Hyp D", "isGroup":true, "color":"blue", "key":-17, "group":-20},
-{"text":"~D", "color":"white", "key":-18, "loc":"32.13250000000002 83.99499999999996", "group":-20},
+{"text":"~D", "color":"gold", "conclusion":false, "key":-18, "loc":"86.83250000000007 140.04499999999996", "group":-20},
 {"category":"LinkLabel", "key":-19, "group":-20},
 {"text":"Hyp A", "isGroup":true, "color":"blue", "key":-20},
-{"text":"A⊃~D", "color":"white", "key":-21, "loc":"-69.71249999999996 176.80999999999992"},
+{"text":"A⊃~D", "color":"gold", "conclusion":false, "key":-21, "loc":"81.28750000000004 243.80999999999995"},
 {"category":"LinkLabel", "key":-22}
  ],
   "linkDataArray": [ 
-{"from":-4, "to":-5, "labelKeys":[ -6 ], "points":[-82.32433571477607,-65.5186040146146,-72.32433571477607,-65.5186040146146,37.2178217666354,-65.5186040146146,37.2178217666354,-66.5186040146146,121,-66.5186040146146,131,-66.5186040146146], "text":"\nElim ≡"},
-{"from":-1, "to":-6, "labelKeys":[ -7 ], "category":"linkToLink"},
-{"from":-5, "to":-8, "labelKeys":[ -9 ], "points":[173.23468528131767,-66.5186040146146,183.23468528131767,-66.5186040146146,238.7623426406588,-66.5186040146146,238.7623426406588,-66.5136040146146,294.28999999999996,-66.5136040146146,304.28999999999996,-66.5136040146146], "text":"\nContra"},
-{"from":-2, "to":-9, "labelKeys":[ -10 ], "category":"linkToLink"},
-{"from":-11, "to":-12, "labelKeys":[ -13 ], "points":[-79.88183571477609,23.89139598538537,-69.88183571477609,23.89139598538537,37.90282176663539,23.89139598538537,37.90282176663539,22.78889598538541,113.9275,22.78889598538541,123.9275,22.78889598538541], "text":"\nIntro ∧"},
-{"from":-3, "to":-13, "labelKeys":[ -14 ], "category":"linkToLink"},
-{"from":-12, "to":-15, "labelKeys":[ -16 ], "points":[178.91484031061455,22.78889598538541,188.91484031061455,22.78889598538541,245.4611701553073,22.78889598538541,245.4611701553073,21.68639598538539,302.0075,21.68639598538539,312.0075,21.68639598538539], "text":"\nIntro ⊥"},
-{"from":-17, "to":-18, "labelKeys":[ -19 ], "points":[117.15417888333465,63.15706321823269,117.15417888333465,73.1570632182327,85.20201076199675,73.1570632182327,85.20201076199675,73.995,53.249842640658834,73.995,53.249842640658834,83.995], "text":"\nIntro ~"},
-{"from":-20, "to":-21, "labelKeys":[ -22 ], "points":[122.12794078157623,142.7420632182327,122.12794078157623,152.7420632182327,122.12794078157623,159.7760316091163,-37.16285297701701,159.7760316091163,-37.16285297701701,166.80999999999992,-37.16285297701701,176.80999999999992], "text":"\nIntro ⊃"}
+{"from":-4, "to":-5, "labelKeys":[ -6 ], "points":[-85.68576250846027,-36.70718026546062,-75.68576250846027,-36.70718026546062,30.91782176663545,-36.70718026546062,30.91782176663545,-37.70718026546062,114.70000000000005,-37.70718026546062,124.70000000000005,-37.70718026546062], "text":"\nElim ≡"},
+{"from":-1, "to":-6, "labelKeys":[ -7 ], "category":"linkToLink", "points":[-81.02917580266667,-152.4571802654606,-71.02917580266667,-152.4571802654606,-68,-152.4571802654606,-68,-152.4571802654606,4,-152.4571802654606,4,-36.70718026546062,7.007118745769887,-36.70718026546062,17.007118745769887,-36.70718026546062]},
+{"from":-5, "to":-8, "labelKeys":[ -9 ], "points":[166.93468528131774,-37.70718026546063,176.93468528131774,-37.70718026546063,232.46234264065885,-37.70718026546063,232.46234264065885,-44.46360401461459,287.99,-44.46360401461459,297.99,-44.46360401461459], "text":"\nContra"},
+{"from":-2, "to":-9, "labelKeys":[ -10 ], "category":"linkToLink", "points":[195.61324057916923,-138.75718026546062,205.61324057916923,-138.75718026546062,204,-138.75718026546062,204,-138.75718026546062,220,-138.75718026546062,220,-41.085392140037634,219.46234264065885,-41.085392140037634,229.46234264065885,-41.085392140037634]},
+{"from":-11, "to":-12, "labelKeys":[ -13 ], "points":[-79.24326250846028,68.70281973453935,-69.24326250846028,68.70281973453935,21.192118745769882,68.70281973453935,21.192118745769882,67.60031973453938,111.62750000000004,67.60031973453938,121.62750000000004,67.60031973453938], "text":"\nIntro ∧"},
+{"from":-3, "to":-13, "labelKeys":[ -14 ], "category":"linkToLink", "points":[320.48750000000007,-139.75718026546062,310.48750000000007,-139.75718026546062,308,-139.75718026546062,308,-172,21.192118745769886,-172,21.192118745769886,55.151569734539365,21.192118745769886,65.15156973453936]},
+{"from":-12, "to":-15, "labelKeys":[ -16 ], "points":[176.6148403106146,67.60031973453938,186.6148403106146,67.60031973453938,243.16117015530733,67.60031973453938,243.16117015530733,59.7363959853854,299.70750000000004,59.7363959853854,309.70750000000004,59.7363959853854], "text":"\nIntro ⊥"},
+{"from":-17, "to":-18, "labelKeys":[ -19 ], "points":[114.85417888333467,114.72991071654062,114.85417888333467,124.72991071654062,114.85417888333467,124.3874553582703,107.94984264065891,124.3874553582703,107.94984264065891,130.04499999999996,107.94984264065891,140.04499999999996], "text":"\nIntro ~"},
+{"from":-20, "to":-21, "labelKeys":[ -22 ], "points":[117.82794078157633,198.79206321823267,117.82794078157633,208.79206321823267,120.55754390227973,208.79206321823267,120.55754390227973,233.80999999999992,113.83714702298309,233.80999999999992,113.83714702298309,243.80999999999992], "text":"\nIntro ⊃"}
  ]}
       </textarea>
     </div>
