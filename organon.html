@@ -872,14 +872,25 @@
             myDiagram.startTransaction("Ajout de premisses");
             premisses = document.getElementById("premisses").value.split("\n");
             if (premisses.length >= 1){
-                myDiagram.model.addNodeData({text:premisses[0]});
-                myDiagram.selectCollection(myDiagram.nodes);
-                for (var i = 1; i < premisses.length; i++){
-                    if (premisses[i].trim().length >= 1)
-                        myDiagram.model.addNodeData({text:premisses[i].trim()});
+                for (var i = 0; i < premisses.length; i++){
+                    if (i === 0) myDiagram.selectCollection(myDiagram.nodes);
+                    if (premisses[i].trim().length >= 1){
+                        myDiagram.model.addNodeData({
+                            text:premisses[i].trim(),
+                            loc: spiralLoc(i)
+                        });
+                        console.log(spiralLoc(i));
+                    }
                 }
             }
             myDiagram.commitTransaction("Ajout de premisses");
+        }
+        function spiralLoc(i){
+            var a = 30;
+            var n = 1;
+            var x = a*Math.pow(i,1/n)*Math.cos(i);
+            var y = a*Math.pow(i,1/n)*Math.sin(i);
+            return x.toString() + " " + y.toString();
         }
     </script>
 </head>
