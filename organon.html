@@ -224,23 +224,24 @@
                         function(o) {
                             return o.diagram.commandHandler.canUngroupSelection();
                         }),
-                   /* makeButton("Dégrouper",
+                   makeButton("Dégrouper",
                         function(e, obj) {
-                            var partlist = new go.List(go.Part);
-                            var contextmenu = obj.part; // the Button is in the context menu Adornment
-                            var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
-                            partlist.add(part);
+                            //var partlist = new go.List(go.Part);
+                            //var contextmenu = obj.part; // the Button is in the context menu Adornment
+                            //var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
+                            //partlist.add(part);
                             // now can do something with PART, or with its data, or with the Adornment (the context menu)
-                            e.diagram.commandHandler.addTopLevelParts(partlist,true);
+                            e.diagram.commandHandler.addTopLevelParts(e.diagram.selection,true);
                         },
                         function(o) {
-                            alert(o.diagramHandler.isValidMember(null,o.part))
-                            var part = o.part; // the adornedPart is the Part that the context menu adorns
+                            console.log(o.data.hasOwnProperty("group"));
+                            //var part = o.part; // the adornedPart is the Part that the context menu adorns
                             // now can do something with PART, or with its data, or with the Adornment (the context menu)
-                            //return (part instanceof go.Node) && o.diagramHandler.isValidMember(null,part) && part.data.hasOwnProperty("group")
-                            return false
+                            return o.data.hasOwnProperty("group") && !o.diagram.commandHandler.canUngroupSelection()
+                                    && o.diagram.selection.count > 0;
+                            //return false
                         }),
-                    */
+                    
                     makeButton("Construire Argument",
                         function(e, obj) {
                             createArgument(obj, obj.diagram.selection);
