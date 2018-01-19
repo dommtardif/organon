@@ -444,10 +444,18 @@
 
                         var centrex = (conclusion.location.x + selArray[0].location.x)/2;
                         var centrey = (conclusion.location.y + selArray[0].location.y)/2;
-                        var centre = {"loc": centrex.toString + " " + centrey.toString};
+                        var centre = {"loc": centrex.toString() + " " + centrey.toString()};
                         diagram.model.makeNodeDataKeyUnique(centre);
                         diagram.model.setCategoryForNodeData(centre,"deduction");
                         diagram.model.addNodeData(centre);
+                        diagram.commitTransaction("Create argument");
+
+                        diagram.layout.network.findVertex(diagram.findNodeForData(centre)).charge = 0;
+                        diagram.layout.network.findVertex(diagram.findNodeForData(cdata)).charge = 75;
+                        diagram.layout.invalidateLayout();
+
+                        diagram.startTransaction("Create argument");
+
                         diagram.select(conclusion);
                         for (var i = 0; i < selArray.length; i++) {
                             diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(selArray[i].data), to: diagram.model.getKeyForNodeData(centre), category: "linkToLink"});
@@ -465,7 +473,7 @@
                             diagram.model.setGroupKeyForNodeData(selArray[i].data, diagram.model.getKeyForNodeData(group));
                         }
                         diagram.commitTransaction("Create group around argument");
-                        
+                        diagram.layout.invalidateLayout();
                     } else {
                         diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(selArray[0].data), to: diagram.model.getKeyForNodeData(selArray[0].data)});
                         diagram.select(selArray[0]);
@@ -510,11 +518,9 @@
                 // This node supports user-drawn links to and from the label node.
                 myDiagram.nodeTemplateMap.add("deduction",
                  $("Node", {
-                 selectable: false,
+                 selectable: true,
                  avoidable: true,
-                 layerName: "Foreground",
-                 isLayoutPositioned: true 
-                 
+                 layerName: "Foreground"                 
                  }, // always have link label nodes in front of Links
                  new go.Binding("visible", "visible").makeTwoWay(),
                  $("Shape", "Ellipse", {
@@ -971,6 +977,11 @@
                 var y = a * Math.pow(i, 1 / n) * Math.sin(i);
                 return x.toString() + " " + y.toString();
             }
+            function getreqfullscreen(){
+                var root = document.documentElement
+                return root.requestFullscreen || root.webkitRequestFullscreen || root.mozRequestFullScreen || root.msRequestFullscreen
+            }
+            //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
         </script>
     </head>
 
@@ -979,6 +990,9 @@
         <div id="sample">
             <div id="myDiagramDiv" style="border: solid 1px black; width:100%; height:600px;"></div>
             <div>
+                <div>
+                    <button onclick='getreqfullscreen().call(document.getElementById("myDiagramDiv"));'>Plein écran</button>
+                </div>
                 <div id="clavierlogique">
                     <button id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
                 </div>
