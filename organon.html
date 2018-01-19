@@ -234,7 +234,6 @@
                                             e.diagram.commandHandler.addTopLevelParts(e.diagram.selection, true);
                                         },
                                         function (o) {
-                                            console.log(o.data.hasOwnProperty("group"));
                                             //var part = o.part; // the adornedPart is the Part that the context menu adorns
                                             // now can do something with PART, or with its data, or with the Adornment (the context menu)
                                             return o.data.hasOwnProperty("group") && !o.diagram.commandHandler.canUngroupSelection()
@@ -765,9 +764,7 @@
                     customInput.onkeypress = function (e) {
 
                         var keynum = e.which;
-                        console.log(keynum);
                         if (keynum === 13) { // Accept on Enter
-                            console.log("key is enter");
                             tool.doMouseDown();
 
                             return;
@@ -953,42 +950,82 @@
                 reader.readAsText(f);
             }
             function ajouterPremisses() {
+                var deltaX = myDiagram.position.x;
+                var deltaY = myDiagram.position.y;
                 myDiagram.startTransaction("Ajout de premisses");
+               
                 premisses = document.getElementById("premisses").value.split("\n");
                 if (premisses.length >= 1) {
                     for (var i = 0; i < premisses.length; i++) {
-                        if (i === 0)
-                            myDiagram.selectCollection(myDiagram.nodes);
+                        //if (i === 0)
+                        //    myDiagram.selectCollection(myDiagram.nodes);
                         if (premisses[i].trim().length >= 1) {
                             myDiagram.model.addNodeData({
                                 text: premisses[i].trim(),
-                                loc: spiralLoc(i)
+                                loc: spiralLoc(i,deltaX,deltaY)
                             });
-                            console.log(spiralLoc(i));
                         }
                     }
                 }
                 myDiagram.commitTransaction("Ajout de premisses");
+                myDiagram.clearSelection();
+                myDiagram.layout.invalidateLayout();
+                myDiagram.zoomToRect(myDiagram.documentBounds);
+                myDiagram.centerRect(myDiagram.documentBounds);
             }
-            function spiralLoc(i) {
+            function spiralLoc(i,deltaX,deltaY) {
                 var a = 30;
                 var n = 1;
-                var x = a * Math.pow(i, 1 / n) * Math.cos(i);
-                var y = a * Math.pow(i, 1 / n) * Math.sin(i);
+                var x = a * Math.pow(i, 1 / n) * Math.cos(i) + deltaX;
+                var y = a * Math.pow(i, 1 / n) * Math.sin(i) + deltaY;
                 return x.toString() + " " + y.toString();
             }
             function getreqfullscreen(){
-                var root = document.documentElement
-                return root.requestFullscreen || root.webkitRequestFullscreen || root.mozRequestFullScreen || root.msRequestFullscreen
+                var root = document.documentElement;
+                return root.requestFullscreen || root.webkitRequestFullscreen || root.mozRequestFullScreen || root.msRequestFullscreen;
             }
             //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
         </script>
+        <style>
+            #myDiagramDiv{
+                border: solid 1px black;
+                width:100%;
+                height:600px;    
+            }
+            #myDiagramDiv:-webkit-full-screen {
+                /*style for full screen element */
+                border: solid 1px black;
+                width:100%;
+                height:100%;
+            }
+
+            #myDiagramDiv:-moz-full-screen {
+                /*style for full screen element */
+                border: solid 1px black;
+                width:100%;
+                height:100%;
+            }
+
+            #myDiagramDiv:-ms-fullscreen {
+                /*style for full screen element */
+                border: solid 1px black;
+                width:100%;
+                height:100%;
+            }
+
+            #myDiagramDiv:fullscreen { /* official selector */
+                /*style for full screen element */
+                border: solid 1px black;
+                width:100%;
+                height:100%;
+            }
+</style>
     </head>
 
     <body onload="init()">
         <h1>Visualisation de logique</h1>
         <div id="sample">
-            <div id="myDiagramDiv" style="border: solid 1px black; width:100%; height:600px;"></div>
+            <div id="myDiagramDiv"></div>
             <div>
                 <div>
                     <button onclick='getreqfullscreen().call(document.getElementById("myDiagramDiv"));'>Plein écran</button>
