@@ -2,11 +2,16 @@
 <html>
 
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Organon</title>
         <meta name="description" content="Visualisateur de logique" />
         <!-- Copyright 1998-2018 by Northwoods Software Corporation. -->
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
         <script src="./js/gojs/go.js"></script>
         <script id="code">
             // Definir la sous classe de forcedirected layout pour avoir un update en temps reel du diagramme
@@ -49,7 +54,7 @@
                 // here we remember it for next time
                 this.network = net;
             };
-            
+
             function init() {
                 //Initialisation de goJS et du diagramme
                 var GOMAKE = go.GraphObject.make;
@@ -61,7 +66,7 @@
                                     //layout: new go.ForceDirectedLayout(),
                                     layout:
                                             GOMAKE(ContinuousForceDirectedLayout, // automatically spread nodes apart while dragging
-                                                    {defaultSpringLength: 30, defaultElectricalCharge: 100}),
+                                                    {defaultSpringLength: 30, defaultElectricalCharge: 30}),
                                     // do an extra layout at the end of a move
                                     "SelectionMoved": function (e) {
                                         e.diagram.layout.invalidateLayout();
@@ -85,7 +90,7 @@
                                     // enable undo & redo
                                     "undoManager.isEnabled": true
                                 });
-                
+
                 //Fonctions de support pour le diagramme
                 function makeButton(text, action, visiblePredicate) {
                     return GOMAKE("ContextMenuButton",
@@ -103,8 +108,10 @@
                     var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
                     // now can do something with PART, or with its data, or with the Adornment (the context menu)
                     if (part instanceof go.Node) {
+                        obj.diagram.startTransaction("Change node color");
                         var shape = part.findObject("SHAPE");
                         shape.fill = color;
+                        obj.diagram.commitTransaction("Change node color");
                     }
                 }
 
@@ -132,7 +139,7 @@
                 function linkInfo(d) { // Tooltip info for a link data object
                     return "Link:\nfrom " + d.from + " to " + d.to;
                 }
-                
+
                 function createArgument(e, selection) {
                     var diagram = e.diagram;
                     var selArray = new Array();
@@ -166,38 +173,26 @@
                             diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(selArray[i].data), to: diagram.model.getKeyForNodeData(centre), category: "linkToLink"});
                         }
                         diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(centre), to: diagram.model.getKeyForNodeData(cdata)});
-                        diagram.commitTransaction("Create argument");
-                        diagram.layout.invalidateLayout();
-                        diagram.startTransaction("Create group around argument");
-                        
+
                         diagram.model.setGroupKeyForNodeData(conclusion.data, diagram.model.getKeyForNodeData(group));
                         diagram.model.setGroupKeyForNodeData(centre, diagram.model.getKeyForNodeData(group));
 
                         for (var i = 0; i < selArray.length; i++) {
                             diagram.model.setGroupKeyForNodeData(selArray[i].data, diagram.model.getKeyForNodeData(group));
                         }
-                        //diagram.layout.doLayout(diagram.findNodeForData(group));
-                        diagram.commitTransaction("Create group around argument");
-                        diagram.findNodeForData(group).layout.network = diagram.findNodeForData(group).layout.makeNetwork(diagram.findNodeForData(group));
-                        diagram.findNodeForData(group).layout.network.findVertex(diagram.findNodeForData(centre)).charge = 0;
-                        diagram.findNodeForData(group).layout.network.findVertex(diagram.findNodeForData(centre)).mass = 50;
+                        diagram.commitTransaction("Create argument");
 
-                        diagram.findNodeForData(group).layout.network.findVertex(diagram.findNodeForData(cdata)).charge = 150;
-                        diagram.findNodeForData(group).layout.doLayout(diagram.findNodeForData(group));
-                        diagram.layout.doLayout(diagram.nodes);
-                        
                     } else {
                         diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(selArray[0].data), to: diagram.model.getKeyForNodeData(selArray[0].data)});
                         diagram.select(selArray[0]);
                         diagram.commitTransaction("Create argument");
-                        return;
                     }
                 }
-                
+
                 function addNodeToRight(e, obj) {
                     var adornment = obj.part;
                     var diagram = e.diagram;
-                    diagram.startTransaction("Add State");
+                    diagram.startTransaction("Add node");
 
                     // get the node data for which the user clicked the button
                     var fromNode = adornment.adornedPart;
@@ -221,12 +216,12 @@
                     var newnode = diagram.findNodeForData(toData);
                     diagram.select(newnode);
 
-                    diagram.commitTransaction("Add State");
+                    diagram.commitTransaction("Add node");
 
                     // if the new node is off-screen, scroll the diagram to show the new node
                     diagram.scrollToRect(newnode.actualBounds);
                 }
-               
+
                 //Configuration du layout
                 var lay = myDiagram.layout;
                 lay.maxIterations = 100;
@@ -241,9 +236,9 @@
                 lay.defaultSpringStiffness = 0.05;
                 lay.defaultSpringLength = 20;
                 lay.comments = true;
-                
+
                 //Definitions des objets et templates
-                
+
                 var nodeContextMenu = GOMAKE(go.Adornment, "Vertical",
                         makeButton("Propriétés",
                                 function (e, obj) { // OBJ is this Button
@@ -415,7 +410,7 @@
                                         ) // end button
                                 ); // end Adornment
 
-                
+
 
                 // Template pour le noeud central d'un argument
                 myDiagram.nodeTemplateMap.add("deduction",
@@ -443,7 +438,7 @@
                                 )
 
                         );
-                 myDiagram.nodeTemplateMap.add("conclusion",
+                myDiagram.nodeTemplateMap.add("conclusion",
                         GOMAKE(go.Node, "Auto",
                                 new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
                                 new go.Binding("visible", "visible").makeTwoWay(),
@@ -551,7 +546,7 @@
                             selectionObjectName: "PANEL", // selection handle goes around shape, not label
                             ungroupable: true,
                             layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
-                                                    {defaultSpringLength: 25, defaultElectricalCharge: 50}),
+                                    {defaultSpringLength: 25, defaultElectricalCharge: 50}),
                             fromSpot: go.Spot.Bottom, // coming out from middle-right
                             toSpot: go.Spot.Top
                         }, // enable Ctrl-Shift-G to ungroup a selected Group
@@ -599,7 +594,7 @@
                             selectionObjectName: "PANEL", // selection handle goes around shape, not label
                             ungroupable: true,
                             layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
-                                                    {defaultSpringLength: 25, defaultElectricalCharge: 50}),
+                                    {defaultSpringLength: 25, defaultElectricalCharge: 50}),
                             fromSpot: go.Spot.Bottom, // coming out from middle-right
                             toSpot: go.Spot.Top
                         }, // enable Ctrl-Shift-G to ungroup a selected Group
@@ -665,12 +660,19 @@
                                         },
                                         function (o) {
                                             return o.diagram.selection.count >= 1;
-                                        })
-                                );
+                                        }),
+                                makeButton("Plein écran",
+                                        function (e, obj) {
+                                            getreqfullscreen().call(document.getElementById("myDiagramDiv"));
+                                        },
+                                        function (o) {
+                                            return true;
+                                        }));
 
                 // Creer un editeur de text avec les symboles logiques
                 var customEditor = GOMAKE(go.HTMLInfo);
                 var customInput = document.createElement("input");
+                customInput.setAttribute("class", "form-control");
                 customInput.id = "textinput";
                 var customEditorDiv = setupLogicKeyboard(customInput);
 
@@ -717,7 +719,7 @@
                 customEditor.valueFunction = function () {
                     return customInput.value;
                 };
-                
+
                 // when the document is modified, add a "*" to the title and enable the "Save" button
                 myDiagram.addDiagramListener("Modified", function (e) {
                     var button = document.getElementById("SaveButton");
@@ -782,6 +784,24 @@
                 customLKNEXISTbutton.innerHTML = customLKNEXIST;
                 customLKPTOUTbutton.innerHTML = customLKPTOUT;
 
+                customLKETbutton.setAttribute("class", "btn btn-light");
+                customLKOUbutton.setAttribute("class", "btn btn-light");
+                customLKNEGbutton.setAttribute("class", "btn btn-light");
+                customLKEQUIVbutton.setAttribute("class", "btn btn-light");
+                customLKIMPLICbutton.setAttribute("class", "btn btn-light");
+                customLKCONTRAbutton.setAttribute("class", "btn btn-light");
+                customLKEXISTbutton.setAttribute("class", "btn btn-light");
+                customLKNEXISTbutton.setAttribute("class", "btn btn-light");
+                customLKPTOUTbutton.setAttribute("class", "btn btn-light");
+                customLKETbutton.setAttribute("type", "button");
+                customLKOUbutton.setAttribute("type", "button");
+                customLKNEGbutton.setAttribute("type", "button");
+                customLKEQUIVbutton.setAttribute("type", "button");
+                customLKIMPLICbutton.setAttribute("type", "button");
+                customLKCONTRAbutton.setAttribute("type", "button");
+                customLKEXISTbutton.setAttribute("type", "button");
+                customLKNEXISTbutton.setAttribute("type", "button");
+                customLKPTOUTbutton.setAttribute("type", "button");
 
                 customLKETbutton.onclick = function () {
                     customInput.value += customLKETbutton.innerHTML;
@@ -881,7 +901,6 @@
                 }
                 myDiagram.commitTransaction("Ajout de premisses");
                 myDiagram.clearSelection();
-                myDiagram.layout.invalidateLayout();
                 myDiagram.zoomToRect(myDiagram.documentBounds);
                 myDiagram.centerRect(myDiagram.documentBounds);
             }
@@ -893,16 +912,39 @@
                 return x.toString() + " " + y.toString();
             }
             function getreqfullscreen() {
-                var root = document.documentElement;
-                return root.requestFullscreen || root.webkitRequestFullscreen || root.mozRequestFullScreen || root.msRequestFullscreen;
+                var isInFullScreen = (document.fullscreenElement && document.fullscreenElement !== null) ||
+                        (document.webkitFullscreenElement && document.webkitFullscreenElement !== null) ||
+                        (document.mozFullScreenElement && document.mozFullScreenElement !== null) ||
+                        (document.msFullscreenElement && document.msFullscreenElement !== null);
+                if (!isInFullScreen) {
+                    var root = document.documentElement;
+                    return root.requestFullscreen || root.webkitRequestFullscreen || root.mozRequestFullScreen || root.msRequestFullscreen;
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    myDiagram.currentTool.doCancel() 
+                }
             }
             //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
+            $(function () {
+                $("#boitepremisses").draggable({handle: "#handle"});
+            });
         </script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
         <style>
             #myDiagramDiv{
                 border: solid 1px black;
                 width:100%;
-                height:600px;    
+                height:600px;
             }
             #myDiagramDiv:-webkit-full-screen {
                 /*style for full screen element */
@@ -931,21 +973,59 @@
                 width:100%;
                 height:100%;
             }
+            #boitepremisses {
+                z-index: 2000;
+                position: absolute;
+                top: 0px;
+                left: 0px;
+            }
+            #pleinecran {
+                z-index: 2000;
+                position: absolute;
+                top:0px;
+                right:0px;
+            }
         </style>
     </head>
 
     <body onload="init()">
-        <h1>Visualisation de logique</h1>
-        <div id="sample">
+        <!--        <h1>Visualisation de logique</h1>-->
+
+        <div class="container-fluid">
             <div id="myDiagramDiv"></div>
+
             <div>
                 <div>
-                    <button onclick='getreqfullscreen().call(document.getElementById("myDiagramDiv"));'>Plein écran</button>
+                    <button id="SaveButton" onclick="savetofile()">Télécharger</button>
+                    <input type="file" id="files" name="file" />
                 </div>
-                <div id="clavierlogique">
-                    <button id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
+                <!--                <div>
+                                    <button id="ExportButton" onclick="exporttojson()">Exporter</button>
+                                    <button onclick="importfromjson()">Importer</button> Diagram.model en format JSON:<br />
+                                </div>
+                
+                                <textarea id="mySavedModel" style="width:100%;height:400px">
+                
+                                </textarea>-->
+            </div>
+        </div>
+
+        <div>
+
+            <div class="card" id="boitepremisses">
+                <div class="card-header" id="handle">
+                    <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#boitentree" aria-expanded="false" aria-controls="collapseExample">
+                        Boîte d'entrée
+                    </button>
+
                 </div>
-                <textarea id ="premisses" style="width:100%;height:400px">
+                <div class="collapse" id="boitentree">
+
+                    <div class="card-body">
+                        <div id="clavierlogique">
+                            <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
+                        </div>
+                        <textarea id ="premisses" style="height:150px;width:100%;">
 Test1
 Test2
 Test3
@@ -961,23 +1041,8 @@ Test12
 Test13
 Test14
 Test15</textarea>
-
-            </div>
-            <div>
-                <div>
-                    <button id="ExportButton" onclick="exporttojson()">Exporter</button>
-                    <button onclick="importfromjson()">Importer</button> Diagram.model en format JSON:<br />
+                    </div>
                 </div>
-                <div>
-                    <button id="SaveButton" onclick="savetofile()">Télécharger</button>
-                    <input type="file" id="files" name="file" />
-
-                    <script>
-                    </script>
-                </div>
-                <textarea id="mySavedModel" style="width:100%;height:400px">
-
-                </textarea>
             </div>
         </div>
     </body>
