@@ -12,8 +12,9 @@
         <script src="./js/popper.js/umd/popper.min.js"></script>
         <script src="./js/twitter-bootstrap/js/bootstrap.min.js"></script>
         <script src="./js/gojs/go.js"></script>
+
         <script src="./js/bsadmin/js/bsadmin.js"></script>
-        
+
         <script id="code">
             // Definir la sous classe de forcedirected layout pour avoir un update en temps reel du diagramme
             function ContinuousForceDirectedLayout() {
@@ -736,12 +737,17 @@
                             document.title = document.title.substr(0, idx);
                     }
                 });
+                myDiagram.model.name = "Diagramme"
                 // Set the HTMLInfo:
                 myDiagram.toolManager.textEditingTool.defaultTextEditor = customEditor;
 
                 document.getElementById('files').addEventListener('change', handleFileSelect, false);
                 //importfromjson();
                 document.getElementById("clavierlogique").appendChild(setupLogicKeyboard(document.getElementById("premisses")));
+                document.getElementById("modelname").value = myDiagram.model.name;
+                document.getElementById("modelname").addEventListener('change', function () {
+                    myDiagram.model.name = document.getElementById("modelname").value;
+                }, false);
             }
             function setupLogicKeyboard(customInput) {
                 var customEditorDiv = document.createElement("div");
@@ -863,19 +869,23 @@
             }
 
             function savetofile() {
-                download(myDiagram.model.toJson(), 'organon.json', 'text/plain');
+                download(myDiagram.model.toJson(), myDiagram.model.name.trim() + '.json', 'text/plain');
+//                $('#openfile').modal('hide');
 
             }
 
             function handleFileSelect(evt) {
-                var f = evt.target.files[0]; // FileList object
+    $('#openfile').modal('hide');
 
+                var f = evt.target.files[0]; // FileList object
                 // files is a FileList of File objects. List some properties.
                 var reader = new FileReader();
                 // Closure to capture the file information.
                 reader.onload = (function (theFile) {
                     return function (e) {
-                        myDiagram.model = go.Model.fromJson(e.target.result);
+                        go.Model.fromJson(e.target.result, myDiagram.model);
+                        myDiagram.model.name = evt.target.files[0].name.replace(/\.[^/.]+$/, "");
+                        document.getElementById("modelname").value = myDiagram.model.name;
                     };
                 })(f);
                 reader.readAsText(f);
@@ -928,35 +938,36 @@
                     } else if (document.msExitFullscreen) {
                         document.msExitFullscreen();
                     }
-                    myDiagram.currentTool.doCancel() 
+                    myDiagram.currentTool.doCancel()
                 }
             }
             //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
-            $(function () {
-                $("#boitepremisses").draggable({handle: "#handle"});
-            });
+
         </script>
+
+        <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap-reboot.min.css">
         <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap.min.css">
+
         <link rel="stylesheet" href="./js/jqueryui/themes/base/jquery-ui.css">
         <link rel="stylesheet" href="./js/bsadmin/css/bsadmin.css">
         <link rel="stylesheet" href="./js/font-awesome/css/font-awesome.min.css">
-        
+
 
         <style>
             #diagramcontainer {
-  text-align: center;
-}
+                text-align: center;
+            }
             #myDiagramDiv{
                 border: solid 1px black;
-                width:95vw;
-                height: 95vh;
-                  display: inline-block;
+                width:100%;
+                height: 100%;
+/*                display: inline-block;*/
 
             }
             #myDiagramDiv:-webkit-full-screen {
                 /*style for full screen element */
                 border: solid 1px black;
-              width:98vw;
+                width:98vw;
                 height: 98vh;
                 display: block;
             }
@@ -964,7 +975,7 @@
             #myDiagramDiv:-moz-full-screen {
                 /*style for full screen element */
                 border: solid 1px black;
-               width:98vw;
+                width:98vw;
                 height: 98vh;
                 display: block;
             }
@@ -980,59 +991,69 @@
             #myDiagramDiv:fullscreen { /* official selector */
                 /*style for full screen element */
                 border: solid 1px black;
-          width:98vw;
+                width:98vw;
                 height: 98vh;
                 display: block;
             }
-            #boitepremisses {
-                z-index: 2000;
-                position: absolute;
-                top: 0px;
-                left: 0px;
+
+/*            .sidebar {
+                min-width: 200px;
+                max-width: 100%;
+                min-height: calc(100vh - 56px);
+                transition: all 0.3s;
+            }*/
+
+            .sidebar ul li span {
+                padding: .75rem 1rem;
+                color: rgba(255, 255, 255, .75);
             }
-          
         </style>
     </head>
 
     <body onload="init()">
-        <!--        <h1>Visualisation de logique</h1>-->
+        <nav class="navbar navbar-expand navbar-dark bg-primary">
+            <a class="sidebar-toggle text-light mr-3"><i class="fa fa-bars"></i></a>
 
-        <div class="container-fluid">
-            <div id="diagramcontainer">
-            <div id="myDiagramDiv"></div>
-</div>
-            <div>
-                <div>
-                    <button id="SaveButton" onclick="savetofile()">Télécharger</button>
-                    <input type="file" id="files" name="file" />
-                </div>
-                <!--                <div>
-                                    <button id="ExportButton" onclick="exporttojson()">Exporter</button>
-                                    <button onclick="importfromjson()">Importer</button> Diagram.model en format JSON:<br />
-                                </div>
-                
-                                <textarea id="mySavedModel" style="width:100%;height:400px">
-                
-                                </textarea>-->
+            <a class="navbar-brand" href="#"><i class="fa fa-code-branch"></i> Organon</a>
+
+            <div class="navbar-collapse collapse">
+                <ul class="navbar-nav ml-auto">
+                    <!--            <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown">
+                                        <i class="fa fa-user"></i> Username
+                                    </a>
+                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+                                        <a class="dropdown-item" href="#">Action</a>
+                                        <a class="dropdown-item" href="#">Another</a>
+                                    </div>
+                                </li>-->
+                </ul>
             </div>
-        </div>
+        </nav>
 
-        <div>
+        <div class="d-flex">
+            <nav class="sidebar bg-dark">
+                <ul class="list-unstyled">
+                    <!--            <li><a href="#" data-toggle="collapse" data-target="#boitepremisses"><i class="fa fa-fw fa-link"></i> Boite d'entrée</a></li>-->
 
-            <div class="card" id="boitepremisses">
-                <div class="card-header" id="handle">
-                    <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#boitentree" aria-expanded="false" aria-controls="collapseExample">
-                        Boîte d'entrée
-                    </button>
+                    <!--            <li><a href="#"><i class="fa fa-fw fa-link"></i> Sidebar Link</a></li>-->
+                    <li>
+                        <a href="#submenu1" data-toggle="collapse"><i class="fa fa-fw fa-files-o"></i> Fichier</a>
+                        <ul id="submenu1" class="list-unstyled collapse">
+                            <li><a href="#" onclick="savetofile()"><i class="fa fa-fw fa-download"></i> Télécharger</a></li>
+                            <li><a href="#" data-toggle="modal" data-target="#openfile"><i class="fa fa-fw fa-folder-open"></i>Ouvrir</a></li>
+                        </ul>
+                    </li>
 
-                </div>
-                <div class="collapse" id="boitentree">
+                    <li>
+                        <a href="#boitepremisses" data-toggle="collapse"><i class="fa fa-fw fa-file-text"></i> Boîte d'entrée</a>
+                        <div class="collapse" id="boitepremisses">
+                            <div class="card">
 
-                    <div class="card-body">
-                        <div id="clavierlogique">
-                            <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
-                        </div>
-                        <textarea id ="premisses" style="height:150px;width:100%;">
+                                <div class="card-body">
+                                    <div id="clavierlogique">
+                                    </div>
+                                    <textarea class="form-control" id="premisses" style="min-height:150px;">
 Test1
 Test2
 Test3
@@ -1048,6 +1069,50 @@ Test12
 Test13
 Test14
 Test15</textarea>
+                                    <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
+
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li>
+                        <a href="#submenu2" data-toggle="collapse"><i class="fa fa-fw fa-info-circle"></i> Infos</a>
+                        <ul id="submenu2" class="list-unstyled collapse" >
+                            <li style="color: rgba(255, 255, 255, .75);" ><span>Nom du diagramme</span></li>
+                            <li>
+                                <span><input type="text" id="modelname" style="width:225px;"/></span>
+
+                            </li>
+
+
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="content p-4">
+                <div id="myDiagramDiv"></div>
+
+
+
+            </div>
+
+        </div>
+        <div class="modal fade" id="openfile" name="openfile" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Ouvrir</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="file" id="files" name="file"/>
+                    </div>
+                    <div class="modal-footer">
+
                     </div>
                 </div>
             </div>
