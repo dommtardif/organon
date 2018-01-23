@@ -4,7 +4,6 @@
     <head>
         <title>Organon</title>
         <meta name="description" content="Visualisateur de logique" />
-        <!-- Copyright 1998-2018 by Northwoods Software Corporation. -->
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -13,6 +12,8 @@
         <script src="./js/popper.js/umd/popper.min.js"></script>
         <script src="./js/twitter-bootstrap/js/bootstrap.min.js"></script>
         <script src="./js/gojs/go.js"></script>
+        <script src="./js/bsadmin/js/bsadmin.js"></script>
+        
         <script id="code">
             // Definir la sous classe de forcedirected layout pour avoir un update en temps reel du diagramme
             function ContinuousForceDirectedLayout() {
@@ -720,12 +721,12 @@
 
                 // when the document is modified, add a "*" to the title and enable the "Save" button
                 myDiagram.addDiagramListener("Modified", function (e) {
-                    var button = document.getElementById("SaveButton");
-                    if (button)
-                        button.disabled = !myDiagram.isModified;
-                    button = document.getElementById("ExportButton");
-                    if (button)
-                        button.disabled = !myDiagram.isModified;
+                    //var button = document.getElementById("SaveButton");
+                    //if (button)
+                    //    button.disabled = !myDiagram.isModified;
+                    //button = document.getElementById("ExportButton");
+                    //if (button)
+                    //    button.disabled = !myDiagram.isModified;
                     var idx = document.title.indexOf("*");
                     if (myDiagram.isModified) {
                         if (idx < 0)
@@ -937,6 +938,9 @@
         </script>
         <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap.min.css">
         <link rel="stylesheet" href="./js/jqueryui/themes/base/jquery-ui.css">
+        <link rel="stylesheet" href="./js/bsadmin/css/bsadmin.css">
+        <link rel="stylesheet" href="./js/font-awesome/css/font-awesome.min.css">
+        
 
         <style>
             #diagramcontainer {
