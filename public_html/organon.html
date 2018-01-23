@@ -1,111 +1,108 @@
 <!DOCTYPE html>
 <html>
 
-    <head>
-        <title>Organon</title>
-        <meta name="description" content="Visualisateur de logique" />
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<head>
+    <title>Organon</title>
+    <meta name="description" content="Visualisateur de logique" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-        <script src="./js/jquery/jquery.min.js"></script>
-        <script src="./js/jqueryui/jquery-ui.min.js"></script>
-        <script src="./js/popper.js/umd/popper.min.js"></script>
-        <script src="./js/twitter-bootstrap/js/bootstrap.min.js"></script>
-        <script src="./js/gojs/go.js"></script>
+    <script src="./js/jquery/jquery.min.js"></script>
+    <script src="./js/jqueryui/jquery-ui.min.js"></script>
+    <script src="./js/popper.js/umd/popper.min.js"></script>
+    <script src="./js/twitter-bootstrap/js/bootstrap.min.js"></script>
+    <script src="./js/gojs/go.js"></script>
 
-        <script src="./js/bsadmin/js/bsadmin.js"></script>
+    <script src="./js/bsadmin/js/bsadmin.js"></script>
 
-        <script id="code">
-            // Definir la sous classe de forcedirected layout pour avoir un update en temps reel du diagramme
-            function ContinuousForceDirectedLayout() {
-                go.ForceDirectedLayout.call(this);
-                this._isObserving = false;
+    <script id="code">
+        // Definir la sous classe de forcedirected layout pour avoir un update en temps reel du diagramme
+        function ContinuousForceDirectedLayout() {
+            go.ForceDirectedLayout.call(this);
+            this._isObserving = false;
+        }
+        go.Diagram.inherit(ContinuousForceDirectedLayout, go.ForceDirectedLayout);
+        /** @override */
+        ContinuousForceDirectedLayout.prototype.isFixed = function (v) {
+            return v.node.isSelected;
+        };
+        /** @override */
+        ContinuousForceDirectedLayout.prototype.doLayout = function (coll) {
+            if (!this._isObserving) {
+                this._isObserving = true;
+                var lay = this;
+                this.diagram.addModelChangedListener(function (e) {
+                    if (e.modelChange !== "" ||
+                        (e.change === go.ChangedEvent.Transaction && e.propertyName === "StartingFirstTransaction")) {
+                        lay.network = null;
+                    }
+                });
             }
-            go.Diagram.inherit(ContinuousForceDirectedLayout, go.ForceDirectedLayout);
+            var net = this.network;
+            if (net === null) { // the first time, just create the network as normal
+                this.network = net = this.makeNetwork(coll);
+            } else { // but on reuse we need to update the LayoutVertex.bounds for selected nodes
+                this.diagram.nodes.each(function (n) {
+                    var v = net.findVertex(n);
+                    if (v !== null)
+                        v.bounds = n.actualBounds;
+                });
+            }
+            // now perform the normal layout
+            go.ForceDirectedLayout.prototype.doLayout.call(this, coll);
+            // doLayout normally discards the LayoutNetwork by setting Layout.network to null;
+            // here we remember it for next time
+            this.network = net;
+        };
 
-            /** @override */
-            ContinuousForceDirectedLayout.prototype.isFixed = function (v) {
-                return v.node.isSelected;
-            };
-
-            /** @override */
-            ContinuousForceDirectedLayout.prototype.doLayout = function (coll) {
-                if (!this._isObserving) {
-                    this._isObserving = true;
-                    var lay = this;
-                    this.diagram.addModelChangedListener(function (e) {
-                        if (e.modelChange !== "" ||
-                                (e.change === go.ChangedEvent.Transaction && e.propertyName === "StartingFirstTransaction")) {
-                            lay.network = null;
-                        }
+        function init() {
+            //Initialisation de goJS et du diagramme
+            var GOMAKE = go.GraphObject.make;
+            myDiagram =
+                GOMAKE(go.Diagram, "myDiagramDiv", // create a Diagram for the DIV HTML element
+                    {
+                        initialContentAlignment: go.Spot.Center,
+                        //layout: new go.ForceDirectedLayout(),
+                        layout: GOMAKE(ContinuousForceDirectedLayout, // automatically spread nodes apart while dragging
+                            {
+                                defaultSpringLength: 30,
+                                defaultElectricalCharge: 30
+                            }),
+                        // do an extra layout at the end of a move
+                        "SelectionMoved": function (e) {
+                            e.diagram.layout.invalidateLayout();
+                        },
+                        //"LinkDrawn": maybeChangeLinkCategory, // these two DiagramEvents call a
+                        //"LinkRelinked": maybeChangeLinkCategory, // function that is defined below
+                        // allow double-click in background to create a new node
+                        "clickCreatingTool.archetypeNodeData": {
+                            text: "Énoncé",
+                            color: "gold"
+                        },
+                        // allow Ctrl-G to call groupSelection()
+                        "commandHandler.archetypeGroupData": {
+                            text: "Groupe",
+                            isGroup: true,
+                            color: "blue"
+                        },
+                        // have mouse wheel events zoom in and out instead of scroll up and down
+                        "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
+                        // enable undo & redo
+                        "undoManager.isEnabled": true
                     });
-                }
-                var net = this.network;
-                if (net === null) {  // the first time, just create the network as normal
-                    this.network = net = this.makeNetwork(coll);
-                } else {  // but on reuse we need to update the LayoutVertex.bounds for selected nodes
-                    this.diagram.nodes.each(function (n) {
-                        var v = net.findVertex(n);
-                        if (v !== null)
-                            v.bounds = n.actualBounds;
-                    });
-                }
-                // now perform the normal layout
-                go.ForceDirectedLayout.prototype.doLayout.call(this, coll);
-                // doLayout normally discards the LayoutNetwork by setting Layout.network to null;
-                // here we remember it for next time
-                this.network = net;
-            };
-
-            function init() {
-                //Initialisation de goJS et du diagramme
-                var GOMAKE = go.GraphObject.make;
-
-                myDiagram =
-                        GOMAKE(go.Diagram, "myDiagramDiv", // create a Diagram for the DIV HTML element
-                                {
-                                    initialContentAlignment: go.Spot.Center,
-                                    //layout: new go.ForceDirectedLayout(),
-                                    layout:
-                                            GOMAKE(ContinuousForceDirectedLayout, // automatically spread nodes apart while dragging
-                                                    {defaultSpringLength: 30, defaultElectricalCharge: 30}),
-                                    // do an extra layout at the end of a move
-                                    "SelectionMoved": function (e) {
-                                        e.diagram.layout.invalidateLayout();
-                                    },
-                                    //"LinkDrawn": maybeChangeLinkCategory, // these two DiagramEvents call a
-                                    //"LinkRelinked": maybeChangeLinkCategory, // function that is defined below
-                                    // allow double-click in background to create a new node
-                                    "clickCreatingTool.archetypeNodeData": {
-                                        text: "Énoncé",
-                                        color: "gold"
-                                    },
-
-                                    // allow Ctrl-G to call groupSelection()
-                                    "commandHandler.archetypeGroupData": {
-                                        text: "Groupe",
-                                        isGroup: true,
-                                        color: "blue"
-                                    },
-                                    // have mouse wheel events zoom in and out instead of scroll up and down
-                                    "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
-                                    // enable undo & redo
-                                    "undoManager.isEnabled": true
-                                });
-
-                //Fonctions de support pour le diagramme
-                function makeButton(text, action, visiblePredicate) {
-                    return GOMAKE("ContextMenuButton",
-                            GOMAKE(go.TextBlock, text), {
+            //Fonctions de support pour le diagramme
+            function makeButton(text, action, visiblePredicate) {
+                return GOMAKE("ContextMenuButton",
+                    GOMAKE(go.TextBlock, text), {
                         click: action
                     },
-                            // don't bother with binding GraphObject.visible if there's no predicate
-                            visiblePredicate ? new go.Binding("visible", "", function (o, e) {
-                                return o.diagram ? visiblePredicate(o, e) : false;
-                            }).ofObject() : {});
-                }
+                    // don't bother with binding GraphObject.visible if there's no predicate
+                    visiblePredicate ? new go.Binding("visible", "", function (o, e) {
+                        return o.diagram ? visiblePredicate(o, e) : false;
+                    }).ofObject() : {});
+            }
 
-                function changeNodeBackground(obj, color) {
+            function changeNodeBackground(obj, color) {
                     var contextmenu = obj.part; // the Button is in the context menu Adornment
                     var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
                     // now can do something with PART, or with its data, or with the Adornment (the context menu)
@@ -116,84 +113,90 @@
                         obj.diagram.commitTransaction("Change node color");
                     }
                 }
-
                 //Functions to display info for different parts
-                function groupInfo(adornment) { // takes the tooltip or context menu, not a group node data object
-                    var g = adornment.adornedPart; // get the Group that the tooltip adorns
-                    var mems = g.memberParts.count;
-                    var links = 0;
-                    g.memberParts.each(function (part) {
-                        if (part instanceof go.Link)
-                            links++;
+            function groupInfo(adornment) { // takes the tooltip or context menu, not a group node data object
+                var g = adornment.adornedPart; // get the Group that the tooltip adorns
+                var mems = g.memberParts.count;
+                var links = 0;
+                g.memberParts.each(function (part) {
+                    if (part instanceof go.Link)
+                        links++;
+                });
+                return "Group " + g.data.key + ": " + g.data.text + "\n" + mems + " members including " + links + " links";
+            }
+
+            function nodeInfo(d) { // Tooltip info for a node data object
+                var str = "Node " + d.key + ": " + d.text + "\n";
+                if (d.group)
+                    str += "member of " + d.group;
+                else
+                    str += "top-level node";
+                return str;
+            }
+
+            function linkInfo(d) { // Tooltip info for a link data object
+                return "Link:\nfrom " + d.from + " to " + d.to;
+            }
+
+            function createArgument(e, selection) {
+                var diagram = e.diagram;
+                var selArray = new Array();
+                var group = {
+                    isGroup: true,
+                    text: "Argument"
+                };
+                diagram.model.makeNodeDataKeyUnique(group);
+                diagram.model.setCategoryForNodeData(group, "argument");
+                var premisse = selection.iterator;
+                while (premisse.next()) {
+                    selArray.push(premisse.value);
+                }
+                diagram.startTransaction("Create argument");
+                if (selArray.length > 1) {
+                    var conclusion = selArray.pop();
+                    var cdata = conclusion.data;
+                    diagram.model.setCategoryForNodeData(cdata, "conclusion");
+                    var centrex = (conclusion.location.x + selArray[0].location.x) / 2;
+                    var centrey = (conclusion.location.y + selArray[0].location.y) / 2;
+                    var centre = {
+                        "loc": centrex.toString() + " " + centrey.toString()
+                    };
+                    diagram.model.makeNodeDataKeyUnique(centre);
+                    diagram.model.setCategoryForNodeData(centre, "deduction");
+                    diagram.model.addNodeData(centre);
+                    diagram.model.addNodeData(group);
+                    diagram.select(conclusion);
+                    for (var i = 0; i < selArray.length; i++) {
+                        diagram.model.addLinkData({
+                            from: diagram.model.getKeyForNodeData(selArray[i].data),
+                            to: diagram.model.getKeyForNodeData(centre),
+                            category: "linkToLink"
+                        });
+                    }
+                    diagram.model.addLinkData({
+                        from: diagram.model.getKeyForNodeData(centre),
+                        to: diagram.model.getKeyForNodeData(cdata)
                     });
-                    return "Group " + g.data.key + ": " + g.data.text + "\n" + mems + " members including " + links + " links";
-                }
-
-                function nodeInfo(d) { // Tooltip info for a node data object
-                    var str = "Node " + d.key + ": " + d.text + "\n";
-                    if (d.group)
-                        str += "member of " + d.group;
-                    else
-                        str += "top-level node";
-                    return str;
-                }
-
-                function linkInfo(d) { // Tooltip info for a link data object
-                    return "Link:\nfrom " + d.from + " to " + d.to;
-                }
-
-                function createArgument(e, selection) {
-                    var diagram = e.diagram;
-                    var selArray = new Array();
-                    var group = {isGroup: true, text: "Argument"};
-                    diagram.model.makeNodeDataKeyUnique(group);
-                    diagram.model.setCategoryForNodeData(group, "argument");
-
-                    var premisse = selection.iterator;
-                    while (premisse.next()) {
-                        selArray.push(premisse.value);
+                    diagram.model.setGroupKeyForNodeData(conclusion.data, diagram.model.getKeyForNodeData(group));
+                    diagram.model.setGroupKeyForNodeData(centre, diagram.model.getKeyForNodeData(group));
+                    for (var i = 0; i < selArray.length; i++) {
+                        diagram.model.setGroupKeyForNodeData(selArray[i].data, diagram.model.getKeyForNodeData(group));
                     }
-
-                    diagram.startTransaction("Create argument");
-
-                    if (selArray.length > 1) {
-                        var conclusion = selArray.pop();
-                        var cdata = conclusion.data;
-                        diagram.model.setCategoryForNodeData(cdata, "conclusion");
-                        var centrex = (conclusion.location.x + selArray[0].location.x) / 2;
-                        var centrey = (conclusion.location.y + selArray[0].location.y) / 2;
-                        var centre = {"loc": centrex.toString() + " " + centrey.toString()};
-                        diagram.model.makeNodeDataKeyUnique(centre);
-                        diagram.model.setCategoryForNodeData(centre, "deduction");
-                        diagram.model.addNodeData(centre);
-                        diagram.model.addNodeData(group);
-
-                        diagram.select(conclusion);
-                        for (var i = 0; i < selArray.length; i++) {
-                            diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(selArray[i].data), to: diagram.model.getKeyForNodeData(centre), category: "linkToLink"});
-                        }
-                        diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(centre), to: diagram.model.getKeyForNodeData(cdata)});
-
-                        diagram.model.setGroupKeyForNodeData(conclusion.data, diagram.model.getKeyForNodeData(group));
-                        diagram.model.setGroupKeyForNodeData(centre, diagram.model.getKeyForNodeData(group));
-
-                        for (var i = 0; i < selArray.length; i++) {
-                            diagram.model.setGroupKeyForNodeData(selArray[i].data, diagram.model.getKeyForNodeData(group));
-                        }
-                        diagram.commitTransaction("Create argument");
-
-                    } else {
-                        diagram.model.addLinkData({from: diagram.model.getKeyForNodeData(selArray[0].data), to: diagram.model.getKeyForNodeData(selArray[0].data)});
-                        diagram.select(selArray[0]);
-                        diagram.commitTransaction("Create argument");
-                    }
+                    diagram.commitTransaction("Create argument");
+                } else {
+                    diagram.model.addLinkData({
+                        from: diagram.model.getKeyForNodeData(selArray[0].data),
+                        to: diagram.model.getKeyForNodeData(selArray[0].data)
+                    });
+                    diagram.select(selArray[0]);
+                    diagram.commitTransaction("Create argument");
                 }
+            }
 
-                function addNodeToRight(e, obj) {
+            function addNodeToRight(e, obj) {
                     var adornment = obj.part;
                     var diagram = e.diagram;
                     diagram.startTransaction("Add node");
-
                     // get the node data for which the user clicked the button
                     var fromNode = adornment.adornedPart;
                     var fromData = fromNode.data;
@@ -211,545 +214,527 @@
                     // add the new node data to the model
                     var model = diagram.model;
                     model.addNodeData(toData);
-
                     // select the new Node
                     var newnode = diagram.findNodeForData(toData);
                     diagram.select(newnode);
-
                     diagram.commitTransaction("Add node");
-
                     // if the new node is off-screen, scroll the diagram to show the new node
                     diagram.scrollToRect(newnode.actualBounds);
                 }
-
                 //Configuration du layout
-                var lay = myDiagram.layout;
-                lay.maxIterations = 100;
-                lay.epsilon = 1;
-                lay.infinity = 1000;
-                var arrangementSpacing = new go.Size();
-                arrangementSpacing.width = 10;
-                arrangementSpacing.height = 10;
-                lay.arrangementSpacing = arrangementSpacing;
-                lay.defaultElectricalCharge = 50;
-                lay.defaultGravitationalMass = 20;
-                lay.defaultSpringStiffness = 0.05;
-                lay.defaultSpringLength = 20;
-                lay.comments = true;
-
-                //Definitions des objets et templates
-
-                var nodeContextMenu = GOMAKE(go.Adornment, "Vertical",
-                        makeButton("Propriétés",
-                                function (e, obj) { // OBJ is this Button
-                                    var contextmenu = obj.part; // the Button is in the context menu Adornment
-                                    var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
-                                    // now can do something with PART, or with its data, or with the Adornment (the context menu)
-                                    if (part instanceof go.Link)
-                                        alert(linkInfo(part.data));
-                                    else if (part instanceof go.Group)
-                                        alert(groupInfo(contextmenu));
-                                    else
-                                        alert(nodeInfo(part.data));
-                                }),
-                        makeButton("Conclusion", // TODO Changer la propriete conclusion par une categorie conclusion avec un template
-                                function (e, obj) { // OBJ is this Button
-                                    var contextmenu = obj.part; // the Button is in the context menu Adornment
-                                    var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
-                                    // now can do something with PART, or with its data, or with the Adornment (the context menu)
-                                    if (part instanceof go.Node) {
-                                        if (part.data.category === "conclusion") {
-                                            changeNodeBackground(obj, "gold");
-                                            e.diagram.model.setCategoryForNodeData(part.data, "");
-                                        } else if (!part.data.conclusion) {
-                                            changeNodeBackground(obj, "blue");
-                                            e.diagram.model.setCategoryForNodeData(part.data, "conclusion");
-                                        } else
-                                            alert("Erreur");
-                                    }
-                                },
-                                function (o) {
-                                    return o.diagram.selection.count === 1 && o.diagram.selection.first() instanceof go.Node;
-                                }),
-                        makeButton("Couper",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.cutSelection();
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canCutSelection();
-                                }),
-                        makeButton("Copier",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.copySelection();
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canCopySelection();
-                                }),
-                        makeButton("Coller",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint);
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canPasteSelection();
-                                }),
-                        makeButton("Supprimer",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.deleteSelection();
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canDeleteSelection();
-                                }),
-                        makeButton("Annuler",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.undo();
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canUndo();
-                                }),
-                        makeButton("Refaire",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.redo();
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canRedo();
-                                }),
-                        makeButton("Grouper",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.groupSelection();
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canGroupSelection();
-                                }),
-                        makeButton("Dégrouper",
-                                function (e, obj) {
-                                    e.diagram.commandHandler.ungroupSelection();
-                                },
-                                function (o) {
-                                    return o.diagram.commandHandler.canUngroupSelection();
-                                }),
-                        makeButton("Dégrouper",
-                                function (e, obj) {
-                                    //var partlist = new go.List(go.Part);
-                                    //var contextmenu = obj.part; // the Button is in the context menu Adornment
-                                    //var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
-                                    //partlist.add(part);
-                                    // now can do something with PART, or with its data, or with the Adornment (the context menu)
-                                    e.diagram.commandHandler.addTopLevelParts(e.diagram.selection, true);
-                                },
-                                function (o) {
-                                    //var part = o.part; // the adornedPart is the Part that the context menu adorns
-                                    // now can do something with PART, or with its data, or with the Adornment (the context menu)
-                                    return o.data.hasOwnProperty("group") && !o.diagram.commandHandler.canUngroupSelection()
-                                            && o.diagram.selection.count > 0;
-                                    //return false
-                                }),
-                        makeButton("Construire Argument",
-                                function (e, obj) {
-                                    createArgument(obj, obj.diagram.selection);
-                                },
-                                function (o) {
-                                    //alert(o.diagram.selection.count);
-                                    return o.diagram.selection.count >= 1;
-                                })
-                        );
-                // define the Node template
-                myDiagram.nodeTemplate =
-                        GOMAKE(go.Node, "Auto",
-                                new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
-                                new go.Binding("visible", "visible").makeTwoWay(),
-                                new go.Binding("conclusion", "conclusion", Boolean).makeTwoWay(),
-                                // define the node's outer shape, which will surround the TextBlock
-                                GOMAKE(go.Shape, "RoundedRectangle", {
-                                    parameter1: 20, // the corner has a large radius
-                                    fill: "gold",
-                                    stroke: null,
-                                    portId: "", // this Shape is the Node's port, not the whole Node
-                                    fromLinkable: true,
-                                    fromLinkableSelfNode: true,
-                                    fromLinkableDuplicates: true,
-                                    toLinkable: true,
-                                    toLinkableSelfNode: true,
-                                    toLinkableDuplicates: true,
-                                    cursor: "pointer",
-                                    name: "SHAPE"
-                                },
-                                        new go.Binding("fill", "color").makeTwoWay()
-                                        ),
-                                GOMAKE(go.Panel, "Vertical",
-                                        GOMAKE(go.TextBlock, {
-                                            font: "bold 11pt helvetica, bold arial, sans-serif",
-                                            editable: true // editing the text automatically updates the model data
-                                        },
-                                                new go.Binding("text").makeTwoWay()
-                                                ),
-                                        GOMAKE("TreeExpanderButton")
-                                        ), {
-                            // the same context menu Adornment is shared by all groups
-                            contextMenu: nodeContextMenu
+            var lay = myDiagram.layout;
+            lay.maxIterations = 100;
+            lay.epsilon = 1;
+            lay.infinity = 1000;
+            var arrangementSpacing = new go.Size();
+            arrangementSpacing.width = 10;
+            arrangementSpacing.height = 10;
+            lay.arrangementSpacing = arrangementSpacing;
+            lay.defaultElectricalCharge = 50;
+            lay.defaultGravitationalMass = 20;
+            lay.defaultSpringStiffness = 0.05;
+            lay.defaultSpringLength = 20;
+            lay.comments = true;
+            //Definitions des objets et templates
+            var nodeContextMenu = GOMAKE(go.Adornment, "Vertical",
+                makeButton("Propriétés",
+                    function (e, obj) { // OBJ is this Button
+                        var contextmenu = obj.part; // the Button is in the context menu Adornment
+                        var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
+                        // now can do something with PART, or with its data, or with the Adornment (the context menu)
+                        if (part instanceof go.Link)
+                            alert(linkInfo(part.data));
+                        else if (part instanceof go.Group)
+                            alert(groupInfo(contextmenu));
+                        else
+                            alert(nodeInfo(part.data));
+                    }),
+                makeButton("Conclusion", // TODO Changer la propriete conclusion par une categorie conclusion avec un template
+                    function (e, obj) { // OBJ is this Button
+                        var contextmenu = obj.part; // the Button is in the context menu Adornment
+                        var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
+                        // now can do something with PART, or with its data, or with the Adornment (the context menu)
+                        if (part instanceof go.Node) {
+                            if (part.data.category === "conclusion") {
+                                changeNodeBackground(obj, "gold");
+                                e.diagram.model.setCategoryForNodeData(part.data, "");
+                            } else if (!part.data.conclusion) {
+                                changeNodeBackground(obj, "blue");
+                                e.diagram.model.setCategoryForNodeData(part.data, "conclusion");
+                            } else
+                                alert("Erreur");
                         }
-                        );
-
-                // Ajouter un boutton d'ajout lorsqu'une premisse est selectionnee
-                myDiagram.nodeTemplate.selectionAdornmentTemplate =
-                        GOMAKE(go.Adornment, "Spot",
-                                GOMAKE(go.Panel, "Auto",
-                                        GOMAKE(go.Shape, {
-                                            fill: null,
-                                            stroke: "blue",
-                                            strokeWidth: 2
-                                        }),
-                                        GOMAKE(go.Placeholder) // a Placeholder sizes itself to the selected Node
-                                        ),
-                                // the button to create a "next" node, at the top-right corner
-                                GOMAKE("Button",
-                                        {
-                                            alignment: go.Spot.TopRight,
-                                            click: addNodeToRight  // this function is defined below
-                                        },
-                                        GOMAKE(go.Shape, "PlusLine", {width: 6, height: 6})
-                                        ) // end button
-                                ); // end Adornment
-
-
-
-                // Template pour le noeud central d'un argument
-                myDiagram.nodeTemplateMap.add("deduction",
-                        GOMAKE("Node", {
-                            selectable: true,
-                            avoidable: true,
-                            layerName: "Foreground"
-                        }, // always have link label nodes in front of Links
-                                new go.Binding("visible", "visible").makeTwoWay(),
-                                GOMAKE("Shape", "Ellipse", {
-                                    width: 5,
-                                    height: 5,
-                                    stroke: null,
-                                    portId: "",
-                                    fromLinkable: true,
-                                    toLinkable: true,
-                                    cursor: "pointer"
-                                })
-                                ),
-                        GOMAKE(go.TextBlock, {
-                            font: "bold 11pt helvetica, bold arial, sans-serif",
-                            editable: true // editing the text automatically updates the model data
+                    },
+                    function (o) {
+                        return o.diagram.selection.count === 1 && o.diagram.selection.first() instanceof go.Node;
+                    }),
+                makeButton("Couper",
+                    function (e, obj) {
+                        e.diagram.commandHandler.cutSelection();
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canCutSelection();
+                    }),
+                makeButton("Copier",
+                    function (e, obj) {
+                        e.diagram.commandHandler.copySelection();
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canCopySelection();
+                    }),
+                makeButton("Coller",
+                    function (e, obj) {
+                        e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint);
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canPasteSelection();
+                    }),
+                makeButton("Supprimer",
+                    function (e, obj) {
+                        e.diagram.commandHandler.deleteSelection();
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canDeleteSelection();
+                    }),
+                makeButton("Annuler",
+                    function (e, obj) {
+                        e.diagram.commandHandler.undo();
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canUndo();
+                    }),
+                makeButton("Refaire",
+                    function (e, obj) {
+                        e.diagram.commandHandler.redo();
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canRedo();
+                    }),
+                makeButton("Grouper",
+                    function (e, obj) {
+                        e.diagram.commandHandler.groupSelection();
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canGroupSelection();
+                    }),
+                makeButton("Dégrouper",
+                    function (e, obj) {
+                        e.diagram.commandHandler.ungroupSelection();
+                    },
+                    function (o) {
+                        return o.diagram.commandHandler.canUngroupSelection();
+                    }),
+                makeButton("Dégrouper",
+                    function (e, obj) {
+                        //var partlist = new go.List(go.Part);
+                        //var contextmenu = obj.part; // the Button is in the context menu Adornment
+                        //var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
+                        //partlist.add(part);
+                        // now can do something with PART, or with its data, or with the Adornment (the context menu)
+                        e.diagram.commandHandler.addTopLevelParts(e.diagram.selection, true);
+                    },
+                    function (o) {
+                        //var part = o.part; // the adornedPart is the Part that the context menu adorns
+                        // now can do something with PART, or with its data, or with the Adornment (the context menu)
+                        return o.data.hasOwnProperty("group") && !o.diagram.commandHandler.canUngroupSelection() &&
+                            o.diagram.selection.count > 0;
+                        //return false
+                    }),
+                makeButton("Construire Argument",
+                    function (e, obj) {
+                        createArgument(obj, obj.diagram.selection);
+                    },
+                    function (o) {
+                        //alert(o.diagram.selection.count);
+                        return o.diagram.selection.count >= 1;
+                    })
+            );
+            // define the Node template
+            myDiagram.nodeTemplate =
+                GOMAKE(go.Node, "Auto",
+                    new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+                    new go.Binding("visible", "visible").makeTwoWay(),
+                    new go.Binding("conclusion", "conclusion", Boolean).makeTwoWay(),
+                    // define the node's outer shape, which will surround the TextBlock
+                    GOMAKE(go.Shape, "RoundedRectangle", {
+                            parameter1: 20, // the corner has a large radius
+                            fill: "gold",
+                            stroke: null,
+                            portId: "", // this Shape is the Node's port, not the whole Node
+                            fromLinkable: true,
+                            fromLinkableSelfNode: true,
+                            fromLinkableDuplicates: true,
+                            toLinkable: true,
+                            toLinkableSelfNode: true,
+                            toLinkableDuplicates: true,
+                            cursor: "pointer",
+                            name: "SHAPE"
                         },
-                                new go.Binding("text").makeTwoWay()
-                                )
-
-                        );
-                myDiagram.nodeTemplateMap.add("conclusion",
-                        GOMAKE(go.Node, "Auto",
-                                new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
-                                new go.Binding("visible", "visible").makeTwoWay(),
-                                new go.Binding("conclusion", "conclusion", Boolean).makeTwoWay(),
-                                // define the node's outer shape, which will surround the TextBlock
-                                GOMAKE(go.Shape, "RoundedRectangle", {
-                                    parameter1: 20, // the corner has a large radius
-                                    fill: "blue",
-                                    stroke: null,
-                                    portId: "", // this Shape is the Node's port, not the whole Node
-                                    fromLinkable: true,
-                                    fromLinkableSelfNode: true,
-                                    fromLinkableDuplicates: true,
-                                    toLinkable: true,
-                                    toLinkableSelfNode: true,
-                                    toLinkableDuplicates: true,
-                                    cursor: "pointer",
-                                    name: "SHAPE"
-                                },
-                                        new go.Binding("fill", "color").makeTwoWay()
-                                        ),
-                                GOMAKE(go.Panel, "Vertical",
-                                        GOMAKE(go.TextBlock, {
-                                            font: "bold 11pt helvetica, bold arial, sans-serif",
-                                            editable: true // editing the text automatically updates the model data
-                                        },
-                                                new go.Binding("text").makeTwoWay()
-                                                ),
-                                        GOMAKE("TreeExpanderButton")
-                                        ), {
-                            // the same context menu Adornment is shared by all groups
-                            contextMenu: nodeContextMenu
-                        }
-                        ));
-                // Liens ordinaires
-                myDiagram.linkTemplate =
-                        GOMAKE("Link", // the whole link panel
-                                {
-                                    curve: go.Link.JumpGap,
-                                    adjusting: go.Link.Stretch,
-                                    corner: 15,
-                                    reshapable: true,
-                                    relinkableFrom: true,
-                                    relinkableTo: true,
-                                    toShortLength: 3,
-                                    routing: go.Link.Normal
-                                },
-                                new go.Binding("points").makeTwoWay(),
-                                new go.Binding("curviness"),
-                                GOMAKE(go.Shape, // the link shape
-                                        {
-                                            strokeWidth: 1.5
-                                        }),
-                                GOMAKE(go.Shape, // the arrowhead
-                                        {
-                                            toArrow: "standard",
-                                            stroke: null
-                                        }),
-                                GOMAKE(go.Panel, "Auto",
-                                        GOMAKE(go.TextBlock, "transition", // the label text
-                                                {
-                                                    textAlign: "center",
-                                                    font: "9pt helvetica, arial, sans-serif",
-                                                    margin: 4,
-                                                    editable: true // enable in-place editing
-                                                },
-                                                // editing the text automatically updates the model data
-                                                new go.Binding("text").makeTwoWay())
-                                        ), {
-                            // the same context menu Adornment is shared by all groups
-                            contextMenu: nodeContextMenu
-                        }
-                        );
-
-                // Template des liens vers des liens, c.a.d. le noeud central
-                myDiagram.linkTemplateMap.add("linkToLink",
-                        GOMAKE("Link", // the whole link panel
-                                {
-                                    curve: go.Link.JumpGap,
-                                    adjusting: go.Link.Stretch,
-                                    isLayoutPositioned: true,
-                                    corner: 15,
-                                    reshapable: true,
-                                    relinkableFrom: true,
-                                    relinkableTo: true,
-                                    toShortLength: 3,
-                                    routing: go.Link.Normal
-                                },
-                                new go.Binding("points").makeTwoWay(),
-                                new go.Binding("curviness"),
-                                GOMAKE(go.Shape, // the link shape
-                                        {
-                                            strokeWidth: 1.5
-                                        }), {
-                            // the same context menu Adornment is shared by all groups
-                            contextMenu: nodeContextMenu
-                        }
-
-                        )
-
-                        );
-                //Template pour les groupes
-                myDiagram.groupTemplate =
-                        GOMAKE(go.Group, "Vertical", {
-                            selectionObjectName: "PANEL", // selection handle goes around shape, not label
-                            ungroupable: true,
-                            layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
-                                    {defaultSpringLength: 25, defaultElectricalCharge: 50}),
-                            fromSpot: go.Spot.Bottom, // coming out from middle-right
-                            toSpot: go.Spot.Top
-                        }, // enable Ctrl-Shift-G to ungroup a selected Group
-                                GOMAKE(go.Panel, "Horizontal",
-                                        GOMAKE(go.TextBlock, {
-                                            font: "bold 19px sans-serif",
-                                            isMultiline: false, // don't allow newlines in text
-                                            editable: true // allow in-place editing by user
-                                        },
-                                                new go.Binding("text", "text").makeTwoWay(),
-                                                new go.Binding("stroke", "color")),
-                                        GOMAKE("SubGraphExpanderButton"),
-                                        GOMAKE("TreeExpanderButton")
-                                        ),
-                                GOMAKE(go.Panel, "Auto", {
-                                    name: "PANEL"
-                                },
-                                        GOMAKE(go.Shape, "RoundedRectangle", // the rectangular shape around the members
-                                                {
-                                                    parameter1: 15,
-                                                    fill: "rgba(128,128,128,0.2)",
-                                                    stroke: "gray",
-                                                    strokeWidth: 3,
-                                                    portId: "",
-                                                    cursor: "pointer", // the Shape is the port, not the whole Node
-                                                    // allow all kinds of links from and to this port
-                                                    fromLinkable: true,
-                                                    fromLinkableSelfNode: true,
-                                                    fromLinkableDuplicates: true,
-                                                    toLinkable: true,
-                                                    toLinkableSelfNode: true,
-                                                    toLinkableDuplicates: true
-                                                }),
-                                        GOMAKE(go.Placeholder, {
-                                            margin: 10,
-                                            background: "transparent"
-                                        }) // represents where the members are
-                                        ), {
-                            // the same context menu Adornment is shared by all groups
-                            contextMenu: nodeContextMenu
-                        }
-                        );
-                myDiagram.groupTemplateMap.add("argument",
-                        GOMAKE(go.Group, "Vertical", {
-                            selectionObjectName: "PANEL", // selection handle goes around shape, not label
-                            ungroupable: true,
-                            layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
-                                    {defaultSpringLength: 25, defaultElectricalCharge: 30}),
-                            fromSpot: go.Spot.Bottom, // coming out from middle-right
-                            toSpot: go.Spot.Top
-                        }, // enable Ctrl-Shift-G to ungroup a selected Group
-                                GOMAKE(go.Panel, "Horizontal",
-                                        GOMAKE("SubGraphExpanderButton"),
-                                        GOMAKE("TreeExpanderButton")
-                                        ),
-                                GOMAKE(go.Panel, "Auto", {
-                                    name: "PANEL"
-                                },
-                                        GOMAKE(go.Shape, "RoundedRectangle", // the rectangular shape around the members
-                                                {
-                                                    parameter1: 15,
-                                                    fill: "ghostwhite",
-                                                    stroke: "whitesmoke",
-                                                    strokeWidth: 3,
-                                                    portId: "",
-                                                    cursor: "pointer", // the Shape is the port, not the whole Node
-                                                    // allow all kinds of links from and to this port
-                                                    fromLinkable: true,
-                                                    fromLinkableSelfNode: true,
-                                                    fromLinkableDuplicates: true,
-                                                    toLinkable: true,
-                                                    toLinkableSelfNode: true,
-                                                    toLinkableDuplicates: true
-                                                }),
-                                        GOMAKE(go.Placeholder, {
-                                            margin: 10,
-                                            background: "transparent"
-                                        }) // represents where the members are
-                                        ), {
-                            // the same context menu Adornment is shared by all groups
-                            contextMenu: nodeContextMenu
-                        }
-                        ));
-                //Menu contextuel appartenant au diagramme lui-meme
-                myDiagram.contextMenu =
-                        GOMAKE(go.Adornment, "Vertical",
-                                makeButton("Coller",
-                                        function (e, obj) {
-                                            e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint);
-                                        },
-                                        function (o) {
-                                            return o.diagram.commandHandler.canPasteSelection();
-                                        }),
-                                makeButton("Annuler",
-                                        function (e, obj) {
-                                            e.diagram.commandHandler.undo();
-                                        },
-                                        function (o) {
-                                            return o.diagram.commandHandler.canUndo();
-                                        }),
-                                makeButton("Refaire",
-                                        function (e, obj) {
-                                            e.diagram.commandHandler.redo();
-                                        },
-                                        function (o) {
-                                            return o.diagram.commandHandler.canRedo();
-                                        }),
-                                makeButton("Construire Argument",
-                                        function (e, obj) {
-                                            createArgument(obj, obj.diagram.selection);
-                                        },
-                                        function (o) {
-                                            return o.diagram.selection.count >= 1;
-                                        }),
-                                makeButton("Plein écran",
-                                        function (e, obj) {
-                                            getreqfullscreen().call(document.getElementById("myDiagramDiv"));
-                                        },
-                                        function (o) {
-                                            return true;
-                                        }));
-
-                // Creer un editeur de text avec les symboles logiques
-                var customEditor = GOMAKE(go.HTMLInfo);
-                var customInput = document.createElement("input");
-                customInput.setAttribute("class", "form-control");
-                customInput.id = "textinput";
-                var customEditorDiv = setupLogicKeyboard(customInput);
-
-                customEditorDiv.appendChild(document.createElement("br"));
-                customEditorDiv.appendChild(customInput);
-
-                customEditor.show = function (textBlock, diagram, tool) {
-                    if (!(textBlock instanceof go.TextBlock))
-                        return;
-                    customInput.innerHTML = "";
-                    customInput.value = textBlock.text;
-
-
-                    // Do a few different things when a user presses a key
-                    customInput.onkeypress = function (e) {
-
-                        var keynum = e.which;
-                        if (keynum === 13) { // Accept on Enter
-                            tool.doMouseDown();
-
-                            return;
-                        } else if (keynum === 27) { // Cancel on Esc
-                            tool.doCancel();
-                            if (tool.diagram)
-                                tool.diagram.focus();
-                        }
-                    };
-
-                    var loc = textBlock.getDocumentPoint(go.Spot.TopLeft);
-                    var pos = diagram.transformDocToView(loc);
-                    customEditorDiv.style.left = pos.x + "px";
-                    customEditorDiv.style.top = pos.y + "px";
-                    customEditorDiv.style.position = 'absolute';
-                    customEditorDiv.style.zIndex = 100; // place it in front of the Diagram
-
-                    diagram.div.appendChild(customEditorDiv);
-                };
-
-                customEditor.hide = function (diagram, tool) {
-                    diagram.div.removeChild(customEditorDiv);
-                };
-
-                // This is necessary for HTMLInfo instances that are used as text editors
-                customEditor.valueFunction = function () {
-                    return customInput.value;
-                };
-
-                // when the document is modified, add a "*" to the title and enable the "Save" button
-                myDiagram.addDiagramListener("Modified", function (e) {
-                    //var button = document.getElementById("SaveButton");
-                    //if (button)
-                    //    button.disabled = !myDiagram.isModified;
-                    //button = document.getElementById("ExportButton");
-                    //if (button)
-                    //    button.disabled = !myDiagram.isModified;
-                    var idx = document.title.indexOf("*");
-                    if (myDiagram.isModified) {
-                        if (idx < 0)
-                            document.title += "*";
-                    } else {
-                        if (idx >= 0)
-                            document.title = document.title.substr(0, idx);
+                        new go.Binding("fill", "color").makeTwoWay()
+                    ),
+                    GOMAKE(go.Panel, "Vertical",
+                        GOMAKE(go.TextBlock, {
+                                font: "bold 11pt helvetica, bold arial, sans-serif",
+                                editable: true // editing the text automatically updates the model data
+                            },
+                            new go.Binding("text").makeTwoWay()
+                        ),
+                        GOMAKE("TreeExpanderButton")
+                    ), {
+                        // the same context menu Adornment is shared by all groups
+                        contextMenu: nodeContextMenu
                     }
-                });
-                myDiagram.model.name = "Diagramme"
+                );
+            // Ajouter un boutton d'ajout lorsqu'une premisse est selectionnee
+            myDiagram.nodeTemplate.selectionAdornmentTemplate =
+                GOMAKE(go.Adornment, "Spot",
+                    GOMAKE(go.Panel, "Auto",
+                        GOMAKE(go.Shape, {
+                            fill: null,
+                            stroke: "blue",
+                            strokeWidth: 2
+                        }),
+                        GOMAKE(go.Placeholder) // a Placeholder sizes itself to the selected Node
+                    ),
+                    // the button to create a "next" node, at the top-right corner
+                    GOMAKE("Button", {
+                            alignment: go.Spot.TopRight,
+                            click: addNodeToRight // this function is defined below
+                        },
+                        GOMAKE(go.Shape, "PlusLine", {
+                            width: 6,
+                            height: 6
+                        })
+                    ) // end button
+                ); // end Adornment
+            // Template pour le noeud central d'un argument
+            myDiagram.nodeTemplateMap.add("deduction",
+                GOMAKE("Node", {
+                        selectable: true,
+                        avoidable: true,
+                        layerName: "Foreground"
+                    }, // always have link label nodes in front of Links
+                    new go.Binding("visible", "visible").makeTwoWay(),
+                    GOMAKE("Shape", "Ellipse", {
+                        width: 5,
+                        height: 5,
+                        stroke: null,
+                        portId: "",
+                        fromLinkable: true,
+                        toLinkable: true,
+                        cursor: "pointer"
+                    })
+                ),
+                GOMAKE(go.TextBlock, {
+                        font: "bold 11pt helvetica, bold arial, sans-serif",
+                        editable: true // editing the text automatically updates the model data
+                    },
+                    new go.Binding("text").makeTwoWay()
+                )
+            );
+            myDiagram.nodeTemplateMap.add("conclusion",
+                GOMAKE(go.Node, "Auto",
+                    new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+                    new go.Binding("visible", "visible").makeTwoWay(),
+                    new go.Binding("conclusion", "conclusion", Boolean).makeTwoWay(),
+                    // define the node's outer shape, which will surround the TextBlock
+                    GOMAKE(go.Shape, "RoundedRectangle", {
+                            parameter1: 20, // the corner has a large radius
+                            fill: "blue",
+                            stroke: null,
+                            portId: "", // this Shape is the Node's port, not the whole Node
+                            fromLinkable: true,
+                            fromLinkableSelfNode: true,
+                            fromLinkableDuplicates: true,
+                            toLinkable: true,
+                            toLinkableSelfNode: true,
+                            toLinkableDuplicates: true,
+                            cursor: "pointer",
+                            name: "SHAPE"
+                        },
+                        new go.Binding("fill", "color").makeTwoWay()
+                    ),
+                    GOMAKE(go.Panel, "Vertical",
+                        GOMAKE(go.TextBlock, {
+                                font: "bold 11pt helvetica, bold arial, sans-serif",
+                                editable: true // editing the text automatically updates the model data
+                            },
+                            new go.Binding("text").makeTwoWay()
+                        ),
+                        GOMAKE("TreeExpanderButton")
+                    ), {
+                        // the same context menu Adornment is shared by all groups
+                        contextMenu: nodeContextMenu
+                    }
+                ));
+            // Liens ordinaires
+            myDiagram.linkTemplate =
+                GOMAKE("Link", // the whole link panel
+                    {
+                        curve: go.Link.JumpGap,
+                        adjusting: go.Link.Stretch,
+                        corner: 15,
+                        reshapable: true,
+                        relinkableFrom: true,
+                        relinkableTo: true,
+                        toShortLength: 3,
+                        routing: go.Link.Normal
+                    },
+                    new go.Binding("points").makeTwoWay(),
+                    new go.Binding("curviness"),
+                    GOMAKE(go.Shape, // the link shape
+                        {
+                            strokeWidth: 1.5
+                        }),
+                    GOMAKE(go.Shape, // the arrowhead
+                        {
+                            toArrow: "standard",
+                            stroke: null
+                        }),
+                    GOMAKE(go.Panel, "Auto",
+                        GOMAKE(go.TextBlock, "transition", // the label text
+                            {
+                                textAlign: "center",
+                                font: "9pt helvetica, arial, sans-serif",
+                                margin: 4,
+                                editable: true // enable in-place editing
+                            },
+                            // editing the text automatically updates the model data
+                            new go.Binding("text").makeTwoWay())
+                    ), {
+                        // the same context menu Adornment is shared by all groups
+                        contextMenu: nodeContextMenu
+                    }
+                );
+            // Template des liens vers des liens, c.a.d. le noeud central
+            myDiagram.linkTemplateMap.add("linkToLink",
+                GOMAKE("Link", // the whole link panel
+                    {
+                        curve: go.Link.JumpGap,
+                        adjusting: go.Link.Stretch,
+                        isLayoutPositioned: true,
+                        corner: 15,
+                        reshapable: true,
+                        relinkableFrom: true,
+                        relinkableTo: true,
+                        toShortLength: 3,
+                        routing: go.Link.Normal
+                    },
+                    new go.Binding("points").makeTwoWay(),
+                    new go.Binding("curviness"),
+                    GOMAKE(go.Shape, // the link shape
+                        {
+                            strokeWidth: 1.5
+                        }), {
+                        // the same context menu Adornment is shared by all groups
+                        contextMenu: nodeContextMenu
+                    }
+                )
+            );
+            //Template pour les groupes
+            myDiagram.groupTemplate =
+                GOMAKE(go.Group, "Vertical", {
+                        selectionObjectName: "PANEL", // selection handle goes around shape, not label
+                        ungroupable: true,
+                        layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
+                            {
+                                defaultSpringLength: 25,
+                                defaultElectricalCharge: 50
+                            }),
+                        fromSpot: go.Spot.Bottom, // coming out from middle-right
+                        toSpot: go.Spot.Top
+                    }, // enable Ctrl-Shift-G to ungroup a selected Group
+                    GOMAKE(go.Panel, "Horizontal",
+                        GOMAKE(go.TextBlock, {
+                                font: "bold 19px sans-serif",
+                                isMultiline: false, // don't allow newlines in text
+                                editable: true // allow in-place editing by user
+                            },
+                            new go.Binding("text", "text").makeTwoWay(),
+                            new go.Binding("stroke", "color")),
+                        GOMAKE("SubGraphExpanderButton"),
+                        GOMAKE("TreeExpanderButton")
+                    ),
+                    GOMAKE(go.Panel, "Auto", {
+                            name: "PANEL"
+                        },
+                        GOMAKE(go.Shape, "RoundedRectangle", // the rectangular shape around the members
+                            {
+                                parameter1: 15,
+                                fill: "rgba(128,128,128,0.2)",
+                                stroke: "gray",
+                                strokeWidth: 3,
+                                portId: "",
+                                cursor: "pointer", // the Shape is the port, not the whole Node
+                                // allow all kinds of links from and to this port
+                                fromLinkable: true,
+                                fromLinkableSelfNode: true,
+                                fromLinkableDuplicates: true,
+                                toLinkable: true,
+                                toLinkableSelfNode: true,
+                                toLinkableDuplicates: true
+                            }),
+                        GOMAKE(go.Placeholder, {
+                            margin: 10,
+                            background: "transparent"
+                        }) // represents where the members are
+                    ), {
+                        // the same context menu Adornment is shared by all groups
+                        contextMenu: nodeContextMenu
+                    }
+                );
+            myDiagram.groupTemplateMap.add("argument",
+                GOMAKE(go.Group, "Vertical", {
+                        selectionObjectName: "PANEL", // selection handle goes around shape, not label
+                        ungroupable: true,
+                        layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
+                            {
+                                defaultSpringLength: 25,
+                                defaultElectricalCharge: 30
+                            }),
+                        fromSpot: go.Spot.Bottom, // coming out from middle-right
+                        toSpot: go.Spot.Top
+                    }, // enable Ctrl-Shift-G to ungroup a selected Group
+                    GOMAKE(go.Panel, "Horizontal",
+                        GOMAKE("SubGraphExpanderButton"),
+                        GOMAKE("TreeExpanderButton")
+                    ),
+                    GOMAKE(go.Panel, "Auto", {
+                            name: "PANEL"
+                        },
+                        GOMAKE(go.Shape, "RoundedRectangle", // the rectangular shape around the members
+                            {
+                                parameter1: 15,
+                                fill: "ghostwhite",
+                                stroke: "whitesmoke",
+                                strokeWidth: 3,
+                                portId: "",
+                                cursor: "pointer", // the Shape is the port, not the whole Node
+                                // allow all kinds of links from and to this port
+                                fromLinkable: true,
+                                fromLinkableSelfNode: true,
+                                fromLinkableDuplicates: true,
+                                toLinkable: true,
+                                toLinkableSelfNode: true,
+                                toLinkableDuplicates: true
+                            }),
+                        GOMAKE(go.Placeholder, {
+                            margin: 10,
+                            background: "transparent"
+                        }) // represents where the members are
+                    ), {
+                        // the same context menu Adornment is shared by all groups
+                        contextMenu: nodeContextMenu
+                    }
+                ));
+            //Menu contextuel appartenant au diagramme lui-meme
+            myDiagram.contextMenu =
+                GOMAKE(go.Adornment, "Vertical",
+                    makeButton("Coller",
+                        function (e, obj) {
+                            e.diagram.commandHandler.pasteSelection(e.diagram.lastInput.documentPoint);
+                        },
+                        function (o) {
+                            return o.diagram.commandHandler.canPasteSelection();
+                        }),
+                    makeButton("Annuler",
+                        function (e, obj) {
+                            e.diagram.commandHandler.undo();
+                        },
+                        function (o) {
+                            return o.diagram.commandHandler.canUndo();
+                        }),
+                    makeButton("Refaire",
+                        function (e, obj) {
+                            e.diagram.commandHandler.redo();
+                        },
+                        function (o) {
+                            return o.diagram.commandHandler.canRedo();
+                        }),
+                    makeButton("Construire Argument",
+                        function (e, obj) {
+                            createArgument(obj, obj.diagram.selection);
+                        },
+                        function (o) {
+                            return o.diagram.selection.count >= 1;
+                        }),
+                    makeButton("Plein écran",
+                        function (e, obj) {
+                            getreqfullscreen().call(document.getElementById("myDiagramDiv"));
+                        },
+                        function (o) {
+                            return true;
+                        }));
+            // Creer un editeur de text avec les symboles logiques
+            var customEditor = GOMAKE(go.HTMLInfo);
+            var customInput = document.createElement("input");
+            customInput.setAttribute("class", "form-control");
+            customInput.id = "textinput";
+            var customEditorDiv = setupLogicKeyboard(customInput);
+            customEditorDiv.appendChild(document.createElement("br"));
+            customEditorDiv.appendChild(customInput);
+            customEditor.show = function (textBlock, diagram, tool) {
+                if (!(textBlock instanceof go.TextBlock))
+                    return;
+                customInput.innerHTML = "";
+                customInput.value = textBlock.text;
+                // Do a few different things when a user presses a key
+                customInput.onkeypress = function (e) {
+                    var keynum = e.which;
+                    if (keynum === 13) { // Accept on Enter
+                        tool.doMouseDown();
+                        return;
+                    } else if (keynum === 27) { // Cancel on Esc
+                        tool.doCancel();
+                        if (tool.diagram)
+                            tool.diagram.focus();
+                    }
+                };
+                var loc = textBlock.getDocumentPoint(go.Spot.TopLeft);
+                var pos = diagram.transformDocToView(loc);
+                customEditorDiv.style.left = pos.x + "px";
+                customEditorDiv.style.top = pos.y + "px";
+                customEditorDiv.style.position = 'absolute';
+                customEditorDiv.style.zIndex = 100; // place it in front of the Diagram
+                diagram.div.appendChild(customEditorDiv);
+            };
+            customEditor.hide = function (diagram, tool) {
+                diagram.div.removeChild(customEditorDiv);
+            };
+            // This is necessary for HTMLInfo instances that are used as text editors
+            customEditor.valueFunction = function () {
+                return customInput.value;
+            };
+            // when the document is modified, add a "*" to the title and enable the "Save" button
+            myDiagram.addDiagramListener("Modified", function (e) {
+                //var button = document.getElementById("SaveButton");
+                //if (button)
+                //    button.disabled = !myDiagram.isModified;
+                //button = document.getElementById("ExportButton");
+                //if (button)
+                //    button.disabled = !myDiagram.isModified;
+                var idx = document.title.indexOf("*");
+                if (myDiagram.isModified) {
+                    if (idx < 0)
+                        document.title += "*";
+                } else {
+                    if (idx >= 0)
+                        document.title = document.title.substr(0, idx);
+                }
+            });
+            myDiagram.model.name = "Diagramme"
                 // Set the HTMLInfo:
-                myDiagram.toolManager.textEditingTool.defaultTextEditor = customEditor;
+            myDiagram.toolManager.textEditingTool.defaultTextEditor = customEditor;
+            document.getElementById('files').addEventListener('change', handleFileSelect, false);
+            //importfromjson();
+            document.getElementById("clavierlogique").appendChild(setupLogicKeyboard(document.getElementById("premisses")));
+            document.getElementById("modelname").value = myDiagram.model.name;
+            document.getElementById("modelname").addEventListener('change', function () {
+                myDiagram.model.name = document.getElementById("modelname").value;
+            }, false);
+        }
 
-                document.getElementById('files').addEventListener('change', handleFileSelect, false);
-                //importfromjson();
-                document.getElementById("clavierlogique").appendChild(setupLogicKeyboard(document.getElementById("premisses")));
-                document.getElementById("modelname").value = myDiagram.model.name;
-                document.getElementById("modelname").addEventListener('change', function () {
-                    myDiagram.model.name = document.getElementById("modelname").value;
-                }, false);
-            }
-            function setupLogicKeyboard(customInput) {
+        function setupLogicKeyboard(customInput) {
                 var customEditorDiv = document.createElement("div");
                 var customLKETbutton = document.createElement("button");
                 var customLKOUbutton = document.createElement("button");
@@ -778,7 +763,6 @@
                 customEditorDiv.appendChild(customLKEXISTbutton);
                 customEditorDiv.appendChild(customLKNEXISTbutton);
                 customEditorDiv.appendChild(customLKPTOUTbutton);
-
                 customLKETbutton.innerHTML = customLKET;
                 customLKOUbutton.innerHTML = customLKOU;
                 customLKNEGbutton.innerHTML = customLKNEG;
@@ -788,7 +772,6 @@
                 customLKEXISTbutton.innerHTML = customLKEXIST;
                 customLKNEXISTbutton.innerHTML = customLKNEXIST;
                 customLKPTOUTbutton.innerHTML = customLKPTOUT;
-
                 customLKETbutton.setAttribute("class", "btn btn-light");
                 customLKOUbutton.setAttribute("class", "btn btn-light");
                 customLKNEGbutton.setAttribute("class", "btn btn-light");
@@ -807,7 +790,6 @@
                 customLKEXISTbutton.setAttribute("type", "button");
                 customLKNEXISTbutton.setAttribute("type", "button");
                 customLKPTOUTbutton.setAttribute("type", "button");
-
                 customLKETbutton.onclick = function () {
                     customInput.value += customLKETbutton.innerHTML;
                     customInput.focus();
@@ -844,87 +826,97 @@
                     customInput.value += customLKPTOUTbutton.innerHTML;
                     customInput.focus();
                 };
-
                 return customEditorDiv;
             }
-
             // Show the diagram's model in JSON format
-            function exporttojson() {
-                document.getElementById("mySavedModel").value = myDiagram.model.toJson();
-                myDiagram.isModified = false;
-            }
+        function exporttojson() {
+            document.getElementById("mySavedModel").value = myDiagram.model.toJson();
+            myDiagram.isModified = false;
+        }
 
-            function importfromjson() {
-                myDiagram.model = go.Model.fromJson(document.getElementById("mySavedModel").value);
-            }
+        function importfromjson() {
+            myDiagram.model = go.Model.fromJson(document.getElementById("mySavedModel").value);
+        }
 
-            function download(text, name, type) {
-                var a = document.createElement("a");
-                var file = new Blob([text], {
-                    type: type
-                });
-                a.href = URL.createObjectURL(file);
-                a.download = name;
-                a.click();
-            }
+        function download(text, name, type) {
+            var a = document.createElement("a");
+            var file = new Blob([text], {
+                type: type
+            });
+            a.href = URL.createObjectURL(file);
+            a.download = name;
+            a.click();
+        }
 
-            function savetofile() {
-                download(myDiagram.model.toJson(), myDiagram.model.name.trim() + '.json', 'text/plain');
-//                $('#openfile').modal('hide');
+        function savetofile() {
+            download(myDiagram.model.toJson(), myDiagram.model.name.trim() + '.json', 'text/plain');
+            //                $('#openfile').modal('hide');
+        }
 
-            }
+        function showJSON() {
+            document.getElementById("jsonpar").innerHTML = myDiagram.model.toJson();
+            $('#modeljson').modal('show');
+        }
+        function newmodel() {
+            myDiagram.model = new go.GraphLinksModel();
+            myDiagram.model.name = document.getElementById("newmodelname").value;
+            document.getElementById("modelname").value = myDiagram.model.name;
 
-            function handleFileSelect(evt) {
-    $('#openfile').modal('hide');
+            $('#newmodel').modal('hide');
+            
+        }
+        function handleFileSelect(evt) {
+            $('#openfile').modal('hide');
+            var f = evt.target.files[0]; // FileList object
+            // files is a FileList of File objects. List some properties.
+            var reader = new FileReader();
+            // Closure to capture the file information.
+            reader.onload = (function (theFile) {
+                return function (e) {
+                    go.Model.fromJson(e.target.result, myDiagram.model);
+                    //myDiagram.model.name = evt.target.files[0].name.replace(/\.[^/.]+$/, "");
+                    document.getElementById("modelname").value = myDiagram.model.name;
+                };
+            })(f);
+            reader.readAsText(f);
+        }
 
-                var f = evt.target.files[0]; // FileList object
-                // files is a FileList of File objects. List some properties.
-                var reader = new FileReader();
-                // Closure to capture the file information.
-                reader.onload = (function (theFile) {
-                    return function (e) {
-                        go.Model.fromJson(e.target.result, myDiagram.model);
-                        myDiagram.model.name = evt.target.files[0].name.replace(/\.[^/.]+$/, "");
-                        document.getElementById("modelname").value = myDiagram.model.name;
-                    };
-                })(f);
-                reader.readAsText(f);
-            }
-            function ajouterPremisses() {
-                var deltaX = myDiagram.position.x;
-                var deltaY = myDiagram.position.y;
-                myDiagram.startTransaction("Ajout de premisses");
-
-                premisses = document.getElementById("premisses").value.split("\n");
-                if (premisses.length >= 1) {
-                    for (var i = 0; i < premisses.length; i++) {
-                        //if (i === 0)
-                        //    myDiagram.selectCollection(myDiagram.nodes);
-                        if (premisses[i].trim().length >= 1) {
-                            myDiagram.model.addNodeData({
-                                text: premisses[i].trim(),
-                                loc: spiralLoc(i, deltaX, deltaY)
-                            });
-                        }
+        function ajouterPremisses() {
+            var deltaX = myDiagram.position.x;
+            var deltaY = myDiagram.position.y;
+            myDiagram.startTransaction("Ajout de premisses");
+            premisses = document.getElementById("premisses").value.split("\n");
+            if (premisses.length >= 1) {
+                for (var i = 0; i < premisses.length; i++) {
+                    //if (i === 0)
+                    //    myDiagram.selectCollection(myDiagram.nodes);
+                    if (premisses[i].trim().length >= 1) {
+                        myDiagram.model.addNodeData({
+                            text: premisses[i].trim(),
+                            loc: spiralLoc(i, deltaX, deltaY)
+                        });
                     }
                 }
-                myDiagram.commitTransaction("Ajout de premisses");
-                myDiagram.clearSelection();
-                myDiagram.zoomToRect(myDiagram.documentBounds);
-                myDiagram.centerRect(myDiagram.documentBounds);
             }
-            function spiralLoc(i, deltaX, deltaY) {
-                var a = 30;
-                var n = 1;
-                var x = a * Math.pow(i, 1 / n) * Math.cos(i) + deltaX;
-                var y = a * Math.pow(i, 1 / n) * Math.sin(i) + deltaY;
-                return x.toString() + " " + y.toString();
-            }
-            function getreqfullscreen() {
+            myDiagram.commitTransaction("Ajout de premisses");
+            myDiagram.clearSelection();
+            myDiagram.zoomToRect(myDiagram.documentBounds);
+            myDiagram.centerRect(myDiagram.documentBounds);
+        }
+
+        function spiralLoc(i, deltaX, deltaY) {
+            var a = 30;
+            var n = 1;
+            var x = a * Math.pow(i, 1 / n) * Math.cos(i) + deltaX;
+            var y = a * Math.pow(i, 1 / n) * Math.sin(i) + deltaY;
+            return x.toString() + " " + y.toString();
+        }
+
+        function getreqfullscreen() {
                 var isInFullScreen = (document.fullscreenElement && document.fullscreenElement !== null) ||
-                        (document.webkitFullscreenElement && document.webkitFullscreenElement !== null) ||
-                        (document.mozFullScreenElement && document.mozFullScreenElement !== null) ||
-                        (document.msFullscreenElement && document.msFullscreenElement !== null);
+                    (document.webkitFullscreenElement && document.webkitFullscreenElement !== null) ||
+                    (document.mozFullScreenElement && document.mozFullScreenElement !== null) ||
+                    (document.msFullscreenElement && document.msFullscreenElement !== null);
                 if (!isInFullScreen) {
                     var root = document.documentElement;
                     return root.requestFullscreen || root.webkitRequestFullscreen || root.mozRequestFullScreen || root.msRequestFullscreen;
@@ -943,118 +935,113 @@
             }
             //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
 
-        </script>
+    </script>
 
-        <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap-reboot.min.css">
-        <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap-reboot.min.css">
+    <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap.min.css">
 
-        <link rel="stylesheet" href="./js/jqueryui/themes/base/jquery-ui.css">
-        <link rel="stylesheet" href="./js/bsadmin/css/bsadmin.css">
-        <link rel="stylesheet" href="./js/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="./js/jqueryui/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="./js/bsadmin/css/bsadmin.css">
+    <link rel="stylesheet" href="./js/font-awesome/css/font-awesome.min.css">
 
-
-        <style>
-            #diagramcontainer {
-                text-align: center;
-            }
-            #myDiagramDiv{
-                border: solid 1px black;
-                width:100%;
-                height: 100%;
-/*                display: inline-block;*/
-
-            }
-            #myDiagramDiv:-webkit-full-screen {
-                /*style for full screen element */
-                border: solid 1px black;
-                width:98vw;
-                height: 98vh;
-                display: block;
-            }
-
-            #myDiagramDiv:-moz-full-screen {
-                /*style for full screen element */
-                border: solid 1px black;
-                width:98vw;
-                height: 98vh;
-                display: block;
-            }
-
-            #myDiagramDiv:-ms-fullscreen {
-                /*style for full screen element */
-                border: solid 1px black;
-                width:98vw;
-                height: 98vh;
-                display: block;
-            }
-
-            #myDiagramDiv:fullscreen { /* official selector */
-                /*style for full screen element */
-                border: solid 1px black;
-                width:98vw;
-                height: 98vh;
-                display: block;
-            }
-
-/*            .sidebar {
+    <style>
+        #diagramcontainer {
+            text-align: center;
+        }
+        #myDiagramDiv {
+            border: solid 1px black;
+            width: 100%;
+            height: 100%;
+            /*                display: inline-block;*/
+        }
+        #myDiagramDiv:-webkit-full-screen {
+            /*style for full screen element */
+            
+            border: solid 1px black;
+            width: 98vw;
+            height: 98vh;
+            display: block;
+        }
+        #myDiagramDiv:-moz-full-screen {
+            /*style for full screen element */
+            
+            border: solid 1px black;
+            width: 98vw;
+            height: 98vh;
+            display: block;
+        }
+        #myDiagramDiv:-ms-fullscreen {
+            /*style for full screen element */
+            
+            border: solid 1px black;
+            width: 98vw;
+            height: 98vh;
+            display: block;
+        }
+        #myDiagramDiv:fullscreen {
+            /* official selector */
+            /*style for full screen element */
+            
+            border: solid 1px black;
+            width: 98vw;
+            height: 98vh;
+            display: block;
+        }
+        /*            .sidebar {
                 min-width: 200px;
                 max-width: 100%;
                 min-height: calc(100vh - 56px);
                 transition: all 0.3s;
             }*/
+        
+        .sidebar ul li span {
+            padding: .75rem 1rem;
+            color: rgba(255, 255, 255, .75);
+        }
 
-            .sidebar ul li span {
-                padding: .75rem 1rem;
-                color: rgba(255, 255, 255, .75);
-            }
-        </style>
-    </head>
+    </style>
+</head>
 
-    <body onload="init()">
-        <nav class="navbar navbar-expand navbar-dark bg-primary">
-            <a class="sidebar-toggle text-light mr-3"><i class="fa fa-bars"></i></a>
+<body onload="init()">
+    <nav class="navbar navbar-expand navbar-dark bg-primary">
+        <a class="sidebar-toggle text-light mr-3"><i class="fa fa-bars"></i></a>
 
-            <a class="navbar-brand" href="#"><i class="fa fa-code-branch"></i> Organon</a>
+        <a class="navbar-brand" href="#"><i class="fa fa-code-branch"></i> Organon</a>
 
-            <div class="navbar-collapse collapse">
-                <ul class="navbar-nav ml-auto">
-                    <!--            <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown">
-                                        <i class="fa fa-user"></i> Username
-                                    </a>
-                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
-                                        <a class="dropdown-item" href="#">Action</a>
-                                        <a class="dropdown-item" href="#">Another</a>
-                                    </div>
-                                </li>-->
-                </ul>
-            </div>
-        </nav>
+        <div class="navbar-collapse collapse">
+            <ul class="navbar-nav ml-auto">
 
-        <div class="d-flex">
-            <nav class="sidebar bg-dark">
-                <ul class="list-unstyled">
-                    <!--            <li><a href="#" data-toggle="collapse" data-target="#boitepremisses"><i class="fa fa-fw fa-link"></i> Boite d'entrée</a></li>-->
+            </ul>
+        </div>
+    </nav>
 
-                    <!--            <li><a href="#"><i class="fa fa-fw fa-link"></i> Sidebar Link</a></li>-->
-                    <li>
-                        <a href="#submenu1" data-toggle="collapse"><i class="fa fa-fw fa-files-o"></i> Fichier</a>
-                        <ul id="submenu1" class="list-unstyled collapse">
-                            <li><a href="#" onclick="savetofile()"><i class="fa fa-fw fa-download"></i> Télécharger</a></li>
-                            <li><a href="#" data-toggle="modal" data-target="#openfile"><i class="fa fa-fw fa-folder-open"></i>Ouvrir</a></li>
-                        </ul>
-                    </li>
+    <div class="d-flex">
+        <nav class="sidebar bg-dark">
+            <ul class="list-unstyled">
 
-                    <li>
-                        <a href="#boitepremisses" data-toggle="collapse"><i class="fa fa-fw fa-file-text"></i> Boîte d'entrée</a>
-                        <div class="collapse" id="boitepremisses">
-                            <div class="card">
+                <li><a href="#" onclick="showJSON();"><i class="fa fa-fw fa-link"></i>Afficher JSON</a>
+                </li>
+                <li>
+                    <a href="#submenu1" data-toggle="collapse"><i class="fa fa-fw fa-files-o"></i> Fichier</a>
+                    <ul id="submenu1" class="list-unstyled collapse">
+                        <li><a href="#" data-toggle="modal" data-target="#newmodel"><i class="fa fa-fw fa-file"></i>Nouveau</a>
+                        </li>
+                        <li><a href="#" onclick="savetofile()"><i class="fa fa-fw fa-download"></i> Télécharger</a>
+                        </li>
+                        <li><a href="#" data-toggle="modal" data-target="#openfile"><i class="fa fa-fw fa-folder-open"></i>Ouvrir</a>
+                        </li>
+                    </ul>
+                </li>
 
-                                <div class="card-body">
-                                    <div id="clavierlogique">
-                                    </div>
-                                    <textarea class="form-control" id="premisses" style="min-height:150px;">
-Test1
+                <li>
+                    <a href="#boitepremisses" data-toggle="collapse"><i class="fa fa-fw fa-file-text"></i> Boîte d'entrée</a>
+                    <div class="collapse" id="boitepremisses">
+                        <div class="card">
+
+                            <div class="card-body">
+                                <div id="clavierlogique">
+                                </div>
+                                <textarea class="form-control" id="premisses" style="min-height:150px;">Test1
 Test2
 Test3
 Test4
@@ -1069,54 +1056,90 @@ Test12
 Test13
 Test14
 Test15</textarea>
-                                    <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
+                                <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
 
-                                </div>
                             </div>
                         </div>
-                    </li>
+                    </div>
+                </li>
 
-                    <li>
-                        <a href="#submenu2" data-toggle="collapse"><i class="fa fa-fw fa-info-circle"></i> Infos</a>
-                        <ul id="submenu2" class="list-unstyled collapse" >
-                            <li style="color: rgba(255, 255, 255, .75);" ><span>Nom du diagramme</span></li>
-                            <li>
-                                <span><input type="text" id="modelname" style="width:225px;"/></span>
+                <li>
+                    <a href="#submenu2" data-toggle="collapse"><i class="fa fa-fw fa-info-circle"></i> Infos</a>
+                    <ul id="submenu2" class="list-unstyled collapse">
+                        <li style="color: rgba(255, 255, 255, .75);"><span>Nom du diagramme</span>
+                        </li>
+                        <li>
+                            <span><input type="text" id="modelname" style="width:225px;"/></span>
 
-                            </li>
+                        </li>
 
+                    </ul>
+                </li>
+            </ul>
+        </nav>
 
-                        </ul>
-                    </li>
-                </ul>
-            </nav>
-
-            <div class="content p-4">
-                <div id="myDiagramDiv"></div>
-
-
-
-            </div>
+        <div class="content p-4">
+            <div id="myDiagramDiv"></div>
 
         </div>
-        <div class="modal fade" id="openfile" name="openfile" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLabel">Ouvrir</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="file" id="files" name="file"/>
-                    </div>
-                    <div class="modal-footer">
 
-                    </div>
+    </div>
+    <div class="modal fade" id="openfile" name="openfile" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ouvrir</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="file" id="files" name="file" />
+                </div>
+                <div class="modal-footer">
+
                 </div>
             </div>
         </div>
-    </body>
+    </div>
+    <div class="modal fade" id="newmodel" name="newmodel" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouveau diagramme</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Veuillez entrer un nom pour le nouveau diagramme</p>
+                    <input type="text" id="newmodelname" class="form-control" value="Diagramme"name="newmodelname"/>
+                </div>
+                <div class="modal-footer">
+                            <button type="button" onclick="newmodel();" class="btn btn-primary">Créer</button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modeljson" name="modeljson" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">JSON</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <pre id="jsonpar"></pre>
+                </div>
+                <div class="modal-footer">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
 
 </html>
