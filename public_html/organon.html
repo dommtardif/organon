@@ -249,7 +249,7 @@
                         else
                             alert(nodeInfo(part.data));
                     }),
-                makeButton("Conclusion", // TODO Changer la propriete conclusion par une categorie conclusion avec un template
+                makeButton("Conclusion",
                     function (e, obj) { // OBJ is this Button
                         var contextmenu = obj.part; // the Button is in the context menu Adornment
                         var part = contextmenu.adornedPart; // the adornedPart is the Part that the context menu adorns
@@ -858,6 +858,7 @@
             $('#modeljson').modal('show');
         }
         function newmodel() {
+            //TODO verifier si le document est modifié avant de créer
             myDiagram.model = new go.GraphLinksModel();
             myDiagram.model.name = document.getElementById("newmodelname").value;
             document.getElementById("modelname").value = myDiagram.model.name;
@@ -866,6 +867,7 @@
             
         }
         function handleFileSelect(evt) {
+            //TODO verifier si le document est modifié avant d'ouvrir
             $('#openfile').modal('hide');
             var f = evt.target.files[0]; // FileList object
             // files is a FileList of File objects. List some properties.
@@ -1010,7 +1012,7 @@
 
         <div class="navbar-collapse collapse">
             <ul class="navbar-nav ml-auto">
-
+                <li>Contact</li>
             </ul>
         </div>
     </nav>
@@ -1019,16 +1021,16 @@
         <nav class="sidebar bg-dark">
             <ul class="list-unstyled">
 
-                <li><a href="#" onclick="showJSON();"><i class="fa fa-fw fa-link"></i>Afficher JSON</a>
+                <li><a href="#" onclick="showJSON();"><i class="fa fa-fw fa-link"></i> Afficher JSON</a>
                 </li>
                 <li>
-                    <a href="#submenu1" data-toggle="collapse"><i class="fa fa-fw fa-files-o"></i> Fichier</a>
-                    <ul id="submenu1" class="list-unstyled collapse">
-                        <li><a href="#" data-toggle="modal" data-target="#newmodel"><i class="fa fa-fw fa-file"></i>Nouveau</a>
+                    <a href="#fichier" data-toggle="collapse"><i class="fa fa-fw fa-files-o"></i> Fichier</a>
+                    <ul id="fichier" class="list-unstyled collapse">
+                        <li><a href="#" data-toggle="modal" data-target="#newmodel"><i class="fa fa-fw fa-file"></i> Nouveau</a>
                         </li>
                         <li><a href="#" onclick="savetofile()"><i class="fa fa-fw fa-download"></i> Télécharger</a>
                         </li>
-                        <li><a href="#" data-toggle="modal" data-target="#openfile"><i class="fa fa-fw fa-folder-open"></i>Ouvrir</a>
+                        <li><a href="#" data-toggle="modal" data-target="#openfile"><i class="fa fa-fw fa-folder-open"></i> Ouvrir</a>
                         </li>
                     </ul>
                 </li>
@@ -1056,7 +1058,7 @@ Test12
 Test13
 Test14
 Test15</textarea>
-                                <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()">Ajouter les prémisses</button>
+                                <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()"> Ajouter les prémisses</button>
 
                             </div>
                         </div>
@@ -1064,12 +1066,12 @@ Test15</textarea>
                 </li>
 
                 <li>
-                    <a href="#submenu2" data-toggle="collapse"><i class="fa fa-fw fa-info-circle"></i> Infos</a>
-                    <ul id="submenu2" class="list-unstyled collapse">
-                        <li style="color: rgba(255, 255, 255, .75);"><span>Nom du diagramme</span>
+                    <a href="#infos" data-toggle="collapse"><i class="fa fa-fw fa-info-circle"></i> Infos</a>
+                    <ul id="infos" class="list-unstyled collapse">
+                        <li style="color: rgba(255, 255, 255, .75);"><span> Nom du diagramme</span>
                         </li>
                         <li>
-                            <span><input type="text" id="modelname" style="width:225px;"/></span>
+                            <span><input type="text" id="modelname" style="max-width:225px;"/></span>
 
                         </li>
 
@@ -1084,12 +1086,12 @@ Test15</textarea>
         </div>
 
     </div>
-    <div class="modal fade" id="openfile" name="openfile" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="openfile"  tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Ouvrir</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -1102,18 +1104,18 @@ Test15</textarea>
             </div>
         </div>
     </div>
-    <div class="modal fade" id="newmodel" name="newmodel" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="newmodel" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Nouveau diagramme</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
                     <p>Veuillez entrer un nom pour le nouveau diagramme</p>
-                    <input type="text" id="newmodelname" class="form-control" value="Diagramme"name="newmodelname"/>
+                    <input type="text" id="newmodelname" class="form-control" value="Diagramme" name="newmodelname"/>
                 </div>
                 <div class="modal-footer">
                             <button type="button" onclick="newmodel();" class="btn btn-primary">Créer</button>
@@ -1122,12 +1124,12 @@ Test15</textarea>
             </div>
         </div>
     </div>
-    <div class="modal fade" id="modeljson" name="modeljson" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="modeljson" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">JSON</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
