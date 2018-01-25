@@ -14,9 +14,20 @@
     <script src="./js/gojs/go.js"></script>
 
     <script src="./js/bsadmin/js/bsadmin.js"></script>
+    <script src="./js/logparser/parser.js"></script>
 
     <script id="code">
-        // Definir la sous classe de forcedirected layout pour avoir un update en temps reel du diagramme
+         var customLKET = "∧";
+        var customLKOU = "∨";
+        var customLKNEG = "∼";
+        var customLKEQUIV = "≡";
+        var customLKIMPLIC = "⊃";
+        var customLKCONTRA = "⊥";
+        var customLKEXIST = "∃";
+        var customLKNEXIST = "∄";
+        var customLKPTOUT = "∀";
+        var customLKDONC = "∴"
+// Definir la sous classe de forcedirected layout pour avoir un update en temps reel du diagramme
         function ContinuousForceDirectedLayout() {
             go.ForceDirectedLayout.call(this);
             this._isObserving = false;
@@ -138,60 +149,7 @@
                 return "Link:\nfrom " + d.from + " to " + d.to;
             }
 
-            function createArgument(e, selection) {
-                var diagram = e.diagram;
-                var selArray = new Array();
-                var group = {
-                    isGroup: true,
-                    text: "Argument"
-                };
-                diagram.model.makeNodeDataKeyUnique(group);
-                diagram.model.setCategoryForNodeData(group, "argument");
-                var premisse = selection.iterator;
-                while (premisse.next()) {
-                    selArray.push(premisse.value);
-                }
-                diagram.startTransaction("Create argument");
-                if (selArray.length > 1) {
-                    var conclusion = selArray.pop();
-                    var cdata = conclusion.data;
-                    diagram.model.setCategoryForNodeData(cdata, "conclusion");
-                    var centrex = (conclusion.location.x + selArray[0].location.x) / 2;
-                    var centrey = (conclusion.location.y + selArray[0].location.y) / 2;
-                    var centre = {
-                        "loc": centrex.toString() + " " + centrey.toString()
-                    };
-                    diagram.model.makeNodeDataKeyUnique(centre);
-                    diagram.model.setCategoryForNodeData(centre, "deduction");
-                    diagram.model.addNodeData(centre);
-                    diagram.model.addNodeData(group);
-                    diagram.select(conclusion);
-                    for (var i = 0; i < selArray.length; i++) {
-                        diagram.model.addLinkData({
-                            from: diagram.model.getKeyForNodeData(selArray[i].data),
-                            to: diagram.model.getKeyForNodeData(centre),
-                            category: "linkToLink"
-                        });
-                    }
-                    diagram.model.addLinkData({
-                        from: diagram.model.getKeyForNodeData(centre),
-                        to: diagram.model.getKeyForNodeData(cdata)
-                    });
-                    diagram.model.setGroupKeyForNodeData(conclusion.data, diagram.model.getKeyForNodeData(group));
-                    diagram.model.setGroupKeyForNodeData(centre, diagram.model.getKeyForNodeData(group));
-                    for (var i = 0; i < selArray.length; i++) {
-                        diagram.model.setGroupKeyForNodeData(selArray[i].data, diagram.model.getKeyForNodeData(group));
-                    }
-                    diagram.commitTransaction("Create argument");
-                } else {
-                    diagram.model.addLinkData({
-                        from: diagram.model.getKeyForNodeData(selArray[0].data),
-                        to: diagram.model.getKeyForNodeData(selArray[0].data)
-                    });
-                    diagram.select(selArray[0]);
-                    diagram.commitTransaction("Create argument");
-                }
-            }
+            
 
             function addNodeToRight(e, obj) {
                     var adornment = obj.part;
@@ -745,15 +703,8 @@
                 var customLKEXISTbutton = document.createElement("button");
                 var customLKNEXISTbutton = document.createElement("button");
                 var customLKPTOUTbutton = document.createElement("button");
-                var customLKET = "∧";
-                var customLKOU = "∨";
-                var customLKNEG = "∼";
-                var customLKEQUIV = "≡";
-                var customLKIMPLIC = "⊃";
-                var customLKCONTRA = "⊥";
-                var customLKEXIST = "∃";
-                var customLKNEXIST = "∄";
-                var customLKPTOUT = "∀";
+                               var customLKDONCbutton = document.createElement("button");
+
                 customEditorDiv.appendChild(customLKETbutton);
                 customEditorDiv.appendChild(customLKOUbutton);
                 customEditorDiv.appendChild(customLKNEGbutton);
@@ -763,6 +714,8 @@
                 customEditorDiv.appendChild(customLKEXISTbutton);
                 customEditorDiv.appendChild(customLKNEXISTbutton);
                 customEditorDiv.appendChild(customLKPTOUTbutton);
+                                customEditorDiv.appendChild(customLKDONCbutton);
+
                 customLKETbutton.innerHTML = customLKET;
                 customLKOUbutton.innerHTML = customLKOU;
                 customLKNEGbutton.innerHTML = customLKNEG;
@@ -772,6 +725,8 @@
                 customLKEXISTbutton.innerHTML = customLKEXIST;
                 customLKNEXISTbutton.innerHTML = customLKNEXIST;
                 customLKPTOUTbutton.innerHTML = customLKPTOUT;
+                                customLKDONCbutton.innerHTML = customLKDONC;
+
                 customLKETbutton.setAttribute("class", "btn btn-light");
                 customLKOUbutton.setAttribute("class", "btn btn-light");
                 customLKNEGbutton.setAttribute("class", "btn btn-light");
@@ -781,6 +736,8 @@
                 customLKEXISTbutton.setAttribute("class", "btn btn-light");
                 customLKNEXISTbutton.setAttribute("class", "btn btn-light");
                 customLKPTOUTbutton.setAttribute("class", "btn btn-light");
+                                customLKDONCbutton.setAttribute("class", "btn btn-light");
+
                 customLKETbutton.setAttribute("type", "button");
                 customLKOUbutton.setAttribute("type", "button");
                 customLKNEGbutton.setAttribute("type", "button");
@@ -790,6 +747,8 @@
                 customLKEXISTbutton.setAttribute("type", "button");
                 customLKNEXISTbutton.setAttribute("type", "button");
                 customLKPTOUTbutton.setAttribute("type", "button");
+                                customLKDONCbutton.setAttribute("type", "button");
+
                 customLKETbutton.onclick = function () {
                     customInput.value += customLKETbutton.innerHTML;
                     customInput.focus();
@@ -824,6 +783,10 @@
                 };
                 customLKPTOUTbutton.onclick = function () {
                     customInput.value += customLKPTOUTbutton.innerHTML;
+                    customInput.focus();
+                };
+                customLKDONCbutton.onclick = function () {
+                    customInput.value += customLKDONCbutton.innerHTML;
                     customInput.focus();
                 };
                 return customEditorDiv;
@@ -882,22 +845,82 @@
             })(f);
             reader.readAsText(f);
         }
-
+function createArgument(e, selection) {
+                var diagram = e.diagram;
+                var selArray = new Array();
+                var group = {
+                    isGroup: true,
+                    text: "Argument"
+                };
+                diagram.model.makeNodeDataKeyUnique(group);
+                diagram.model.setCategoryForNodeData(group, "argument");
+                var premisse = selection.iterator;
+                while (premisse.next()) {
+                    selArray.push(premisse.value);
+                }
+                diagram.startTransaction("Create argument");
+                if (selArray.length > 1) {
+                    var conclusion = selArray.pop();
+                    var cdata = conclusion.data;
+                    diagram.model.setCategoryForNodeData(cdata, "conclusion");
+                    var centrex = (conclusion.location.x + selArray[0].location.x) / 2;
+                    var centrey = (conclusion.location.y + selArray[0].location.y) / 2;
+                    var centre = {
+                        "loc": centrex.toString() + " " + centrey.toString()
+                    };
+                    diagram.model.makeNodeDataKeyUnique(centre);
+                    diagram.model.setCategoryForNodeData(centre, "deduction");
+                    diagram.model.addNodeData(centre);
+                    diagram.model.addNodeData(group);
+                    diagram.select(conclusion);
+                    for (var i = 0; i < selArray.length; i++) {
+                        diagram.model.addLinkData({
+                            from: diagram.model.getKeyForNodeData(selArray[i].data),
+                            to: diagram.model.getKeyForNodeData(centre),
+                            category: "linkToLink"
+                        });
+                    }
+                    diagram.model.addLinkData({
+                        from: diagram.model.getKeyForNodeData(centre),
+                        to: diagram.model.getKeyForNodeData(cdata)
+                    });
+                    diagram.model.setGroupKeyForNodeData(conclusion.data, diagram.model.getKeyForNodeData(group));
+                    diagram.model.setGroupKeyForNodeData(centre, diagram.model.getKeyForNodeData(group));
+                    for (var i = 0; i < selArray.length; i++) {
+                        if (diagram.findNodeForData(selArray[i].data).containingGroup === null)
+                            diagram.model.setGroupKeyForNodeData(selArray[i].data, diagram.model.getKeyForNodeData(group));
+                    }
+                    diagram.commitTransaction("Create argument");
+                } else {
+                    diagram.model.addLinkData({
+                        from: diagram.model.getKeyForNodeData(selArray[0].data),
+                        to: diagram.model.getKeyForNodeData(selArray[0].data)
+                    });
+                    diagram.select(selArray[0]);
+                    diagram.commitTransaction("Create argument");
+                }
+                
+            }
         function ajouterPremisses() {
+            //TODO permettre d'ajouter des arguments
             var deltaX = myDiagram.position.x;
             var deltaY = myDiagram.position.y;
             myDiagram.startTransaction("Ajout de premisses");
             premisses = document.getElementById("premisses").value.split("\n");
             if (premisses.length >= 1) {
                 for (var i = 0; i < premisses.length; i++) {
-                    //if (i === 0)
-                    //    myDiagram.selectCollection(myDiagram.nodes);
                     if (premisses[i].trim().length >= 1) {
-                        myDiagram.model.addNodeData({
-                            text: premisses[i].trim(),
-                            loc: spiralLoc(i, deltaX, deltaY)
-                        });
+                        if (premisses[i].indexOf(customLKDONC) == -1){
+                            myDiagram.model.addNodeData({
+                                text: premisses[i].trim(),
+                                loc: spiralLoc(i, deltaX, deltaY)
+                            });
+                            
+
+                        }
+                        else stringtoargument(premisses[i].trim());
                     }
+                    
                 }
             }
             myDiagram.commitTransaction("Ajout de premisses");
@@ -905,7 +928,33 @@
             myDiagram.zoomToRect(myDiagram.documentBounds);
             myDiagram.centerRect(myDiagram.documentBounds);
         }
-
+        function stringtoargument(text){
+            var raw = text.split(",");
+            var conclusion = raw.pop().split(customLKDONC);
+            var premisses = raw.concat(conclusion);
+            var nodes = [];
+            for (var i = 0; i < premisses.length; i++){
+                if (premisses[i].indexOf(customLKDONC) !== -1) { 
+                    nodes[i] = stringtoargument(premisses[i]);
+                }
+                else {
+                    nodes[i] = {text: premisses[i].trim()}
+                }
+            }
+            myDiagram.startTransaction("creating nodes");
+            for (var i = 0; i < nodes.length; i++){
+                if (!nodes[i].hasOwnProperty("key")){
+                    myDiagram.model.makeNodeDataKeyUnique(nodes[i]);
+                    myDiagram.model.addNodeData(nodes[i]);
+                }
+                myDiagram.findNodeForData(nodes[i]).isSelected = true;
+            }
+            myDiagram.commitTransaction("creating nodes");
+            var group = createArgument({diagram:myDiagram},myDiagram.selection); 
+            myDiagram.clearSelection();
+            myDiagram.layout.invalidateLayout();
+            return nodes[nodes.length-1];
+        }
         function spiralLoc(i, deltaX, deltaY) {
             var a = 30;
             var n = 1;
@@ -1046,7 +1095,8 @@
                             <div class="card-body">
                                 <div id="clavierlogique">
                                 </div>
-                                <textarea class="form-control" id="premisses" style="min-height:150px;">Test1
+                                <textarea class="form-control" id="premisses" style="min-height:150px;">1∴2,3,4∴5
+Test1
 Test2
 Test3
 Test4
@@ -1083,7 +1133,7 @@ Test15</textarea>
             </ul>
         </nav>
 
-        <div class="content p-4">
+        <div class="content p-4 d-flex">
             <div id="myDiagramDiv"></div>
             </div>
         </div>
