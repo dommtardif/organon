@@ -726,6 +726,17 @@
                 customLKNEXISTbutton.innerHTML = customLKNEXIST;
                 customLKPTOUTbutton.innerHTML = customLKPTOUT;
                                 customLKDONCbutton.innerHTML = customLKDONC;
+                                
+                customLKETbutton.setAttribute("id",customLKET);
+                customLKOUbutton.setAttribute("id",customLKOU);
+                customLKNEGbutton.setAttribute("id",customLKNEG);
+                customLKEQUIVbutton.setAttribute("id",customLKEQUIV);
+                customLKIMPLICbutton.setAttribute("id",customLKIMPLIC);
+                customLKCONTRAbutton.setAttribute("id",customLKCONTRA);
+                customLKEXISTbutton.setAttribute("id",customLKEXIST);
+                customLKNEXISTbutton.setAttribute("id",customLKNEXIST);
+                customLKPTOUTbutton.setAttribute("id",customLKPTOUT);
+                                customLKDONCbutton.setAttribute("id",customLKDONC);
 
                 customLKETbutton.setAttribute("class", "btn btn-light");
                 customLKOUbutton.setAttribute("class", "btn btn-light");
@@ -748,47 +759,28 @@
                 customLKNEXISTbutton.setAttribute("type", "button");
                 customLKPTOUTbutton.setAttribute("type", "button");
                                 customLKDONCbutton.setAttribute("type", "button");
+                
+                var logickey = function (){
+                    var content = customInput.value;
+                    var position = $("#"+customInput.getAttribute("id")).getCursorPosition()
+                    var newContent = content.substr(0, position) + this.innerHTML + content.substr(position);
+                    customInput.value = newContent ;
+                    customInput.selectionEnd = position + 1;
+                    customInput.focus();
 
-                customLKETbutton.onclick = function () {
-                    customInput.value += customLKETbutton.innerHTML;
-                    customInput.focus();
                 };
-                customLKOUbutton.onclick = function () {
-                    customInput.value += customLKOUbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKNEGbutton.onclick = function () {
-                    customInput.value += customLKNEGbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKEQUIVbutton.onclick = function () {
-                    customInput.value += customLKEQUIVbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKIMPLICbutton.onclick = function () {
-                    customInput.value += customLKIMPLICbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKCONTRAbutton.onclick = function () {
-                    customInput.value += customLKCONTRAbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKEXISTbutton.onclick = function () {
-                    customInput.value += customLKEXISTbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKNEXISTbutton.onclick = function () {
-                    customInput.value += customLKNEXISTbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKPTOUTbutton.onclick = function () {
-                    customInput.value += customLKPTOUTbutton.innerHTML;
-                    customInput.focus();
-                };
-                customLKDONCbutton.onclick = function () {
-                    customInput.value += customLKDONCbutton.innerHTML;
-                    customInput.focus();
-                };
+                
+                customLKETbutton.onclick = logickey;
+                customLKOUbutton.onclick = logickey;
+                customLKNEGbutton.onclick = logickey;
+                customLKEQUIVbutton.onclick = logickey;
+                customLKIMPLICbutton.onclick = logickey;
+                customLKCONTRAbutton.onclick = logickey;
+                customLKEXISTbutton.onclick = logickey;
+                customLKNEXISTbutton.onclick = logickey;
+                customLKPTOUTbutton.onclick = logickey;
+                customLKDONCbutton.onclick = logickey;
+                
                 return customEditorDiv;
             }
             // Show the diagram's model in JSON format
@@ -974,6 +966,22 @@ function createArgument(e, selection) {
                     myDiagram.currentTool.doCancel()
                 }
             }
+            (function ($, undefined) {
+    $.fn.getCursorPosition = function () {
+        var el = $(this).get(0);
+        var pos = 0;
+        if ('selectionStart' in el) {
+            pos = el.selectionStart;
+        } else if ('selection' in document) {
+            el.focus();
+            var Sel = document.selection.createRange();
+            var SelLength = document.selection.createRange().text.length;
+            Sel.moveStart('character', -el.value.length);
+            pos = Sel.text.length - SelLength;
+        }
+        return pos;
+    }
+})(jQuery);
             //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
 
     </script>
@@ -1085,22 +1093,11 @@ function createArgument(e, selection) {
                             <div class="card-body">
                                 <div id="clavierlogique">
                                 </div>
-                                <textarea class="form-control" id="premisses" style="min-height:150px;">1∴2,3,4∴5
-Test1
-Test2
-Test3
-Test4
-Test5
-Test6
-Test7
-Test8
-Test9
-Test10
-Test11
-Test12
-Test13
-Test14
-Test15</textarea>
+                                <textarea class="form-control" id="premisses" style="min-height:150px;">Si (Socrate est un homme) alors (Socrate est mortel),(Socrate est un homme) donc (Socrate est mortel)
+(a∧(b∨c))⊃c,b∧a∴c
+(être aveugle) équivaut à (ne pas voir),(je ne vois pas) donc (je suis aveugle)
+[a∨c⊃b,a∴b],b⊃p,(p∧q)≡x∴x⊃p
+a∧(b∨c)</textarea>
                                 <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()"> Ajouter les prémisses</button>
 
                             </div>
