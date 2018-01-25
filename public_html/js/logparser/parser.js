@@ -199,7 +199,8 @@ logparser = /*
             	return prim + "(" + prem + ")";
             },
         peg$c36 = function(prem, prim) {
-            	return "(" + prem + ")" + prim;
+            	if (prim.length > 0) return "(" + prem + ")" + prim;
+                else return prem;
             },
         peg$c37 = function(prim) {
                 return prim;

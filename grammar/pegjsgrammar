@@ -1,3 +1,4 @@
+//Pour multiligne
 Text 
   = arg:Argument _ "\n"* rest:Text*{
     if (rest[0] && rest[0][0]) {
@@ -47,7 +48,8 @@ Premisse =
     }
     /
      _ "(" _ prem:Premisse _ ")" _ prim:Primary* _ ","*{
-    	return "(" + prem + ")" + prim;
+    	if (prim.length > 0) return "(" + prem + ")" + prim;
+        else return prem;
     }
     /	
       _ prim:Primary _ ","* {
