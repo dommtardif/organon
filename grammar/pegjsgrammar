@@ -1,0 +1,55 @@
+Argument
+  = _ head:(Premisse)+ _ Donc* _ tail:(Premisse)* _ {
+      return head.concat(tail);
+    }
+
+Premisse = 
+    "("_ ante:Premisse _ ")" _ "et" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"∧"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "ou" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"∨"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "implique" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"⊃"+ "(" + post + ")";
+    }
+    /
+    _ [Ss]"i" _ "("_ ante:Premisse _ ")" _ "alors" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"⊃"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "si et seulement si" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"≡"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "équivaut à" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"≡"+ "(" + post + ")";
+    }
+    /
+    "[" _ arg:Argument _ "]" _ ","*{
+        return arg; 
+    }
+    / 
+    _ prim:Primary _ "(" _ prem:Premisse _ ")" _ ","*{
+    	return prim + "(" + prem + ")";
+    }
+    /
+     _ "(" _ prem:Premisse _ ")" _ prim:Primary* _ ","*{
+    	return "(" + prem + ")" + prim;
+    }
+    /	
+      _ prim:Primary _ ","* {
+        return prim;
+    }
+
+Primary "primary"
+  =  !Donc _ prim:([a-zA-Z0-9 ∧∨⊃≡\u00C0-\u017F])+ _  { return prim.join(""); }
+
+Donc
+  = _ "donc" _ / _ "Donc" _ / _ "∴" _
+  
+_ "whitespace"
+  = [ \t\r]*
+              

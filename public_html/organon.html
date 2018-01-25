@@ -902,7 +902,6 @@ function createArgument(e, selection) {
                 
             }
         function ajouterPremisses() {
-            //TODO permettre d'ajouter des arguments
             var deltaX = myDiagram.position.x;
             var deltaY = myDiagram.position.y;
             myDiagram.startTransaction("Ajout de premisses");
@@ -910,15 +909,7 @@ function createArgument(e, selection) {
             if (premisses.length >= 1) {
                 for (var i = 0; i < premisses.length; i++) {
                     if (premisses[i].trim().length >= 1) {
-                        if (premisses[i].indexOf(customLKDONC) == -1){
-                            myDiagram.model.addNodeData({
-                                text: premisses[i].trim(),
-                                loc: spiralLoc(i, deltaX, deltaY)
-                            });
-                            
-
-                        }
-                        else stringtoargument(premisses[i].trim());
+                        arraytoargument(logparser.parse(premisses[i].trim()));
                     }
                     
                 }
@@ -928,14 +919,13 @@ function createArgument(e, selection) {
             myDiagram.zoomToRect(myDiagram.documentBounds);
             myDiagram.centerRect(myDiagram.documentBounds);
         }
-        function stringtoargument(text){
-            var raw = text.split(",");
-            var conclusion = raw.pop().split(customLKDONC);
-            var premisses = raw.concat(conclusion);
+        function arraytoargument(ar){
+            console.log(ar);
+            var premisses = ar
             var nodes = [];
             for (var i = 0; i < premisses.length; i++){
-                if (premisses[i].indexOf(customLKDONC) !== -1) { 
-                    nodes[i] = stringtoargument(premisses[i]);
+                if (premisses[i].constructor === Array) { 
+                    nodes[i] = arraytoargument(premisses[i]);
                 }
                 else {
                     nodes[i] = {text: premisses[i].trim()}
@@ -950,7 +940,7 @@ function createArgument(e, selection) {
                 myDiagram.findNodeForData(nodes[i]).isSelected = true;
             }
             myDiagram.commitTransaction("creating nodes");
-            var group = createArgument({diagram:myDiagram},myDiagram.selection); 
+            if (nodes.length > 1) createArgument({diagram:myDiagram},myDiagram.selection); 
             myDiagram.clearSelection();
             myDiagram.layout.invalidateLayout();
             return nodes[nodes.length-1];
