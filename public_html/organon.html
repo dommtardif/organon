@@ -897,19 +897,19 @@ function createArgument(e, selection) {
             var deltaX = myDiagram.position.x;
             var deltaY = myDiagram.position.y;
             myDiagram.startTransaction("Ajout de premisses");
-            premisses = document.getElementById("premisses").value.split("\n");
-            if (premisses.length >= 1) {
-                for (var i = 0; i < premisses.length; i++) {
-                    if (premisses[i].trim().length >= 1) {
-                        arraytoargument(logparser.parse(premisses[i].trim()));
-                    }
-                    
-                }
-            }
+            premisses = document.getElementById("premisses").value;
+           
+            parsetoarray(logparser.parse(premisses));
+             
             myDiagram.commitTransaction("Ajout de premisses");
             myDiagram.clearSelection();
             myDiagram.zoomToRect(myDiagram.documentBounds);
             myDiagram.centerRect(myDiagram.documentBounds);
+        }
+        function parsetoarray(ar){
+            for (var i = 0;i<ar.length;i++){
+                arraytoargument(ar[i]);
+            }
         }
         function arraytoargument(ar){
             console.log(ar);
@@ -1065,8 +1065,25 @@ function createArgument(e, selection) {
             </ul>
         </div>
     </nav>
+    <div class="collapse" id="boitepremisses">
+                        <div class="card">
 
+                            <div class="card-body">
+                                <div id="clavierlogique">
+                                </div>
+                                <textarea class="form-control" id="premisses" style="min-height:100px;">Si (Socrate est un homme) alors (Socrate est mortel),(Socrate est un homme) donc (Socrate est mortel)
+(a∧(b∨c))⊃c,b∧a∴c
+(être aveugle) équivaut à (ne pas voir),(je ne vois pas) donc (je suis aveugle)
+[a∨c⊃b,a∴b],b⊃p,(p∧q)≡x∴x⊃p
+a∧(b∨c)</textarea>
+                                <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()"> Ajouter les prémisses</button>
+
+                            </div>
+                        </div>
+                    </div>
     <div class="d-flex">
+        
+        
         <nav class="sidebar bg-dark">
             <ul class="list-unstyled">
 
@@ -1087,22 +1104,7 @@ function createArgument(e, selection) {
 
                 <li>
                     <a href="#boitepremisses" data-toggle="collapse"><i class="fa fa-fw fa-file-text"></i> Boîte d'entrée</a>
-                    <div class="collapse" id="boitepremisses">
-                        <div class="card">
-
-                            <div class="card-body">
-                                <div id="clavierlogique">
-                                </div>
-                                <textarea class="form-control" id="premisses" style="min-height:150px;">Si (Socrate est un homme) alors (Socrate est mortel),(Socrate est un homme) donc (Socrate est mortel)
-(a∧(b∨c))⊃c,b∧a∴c
-(être aveugle) équivaut à (ne pas voir),(je ne vois pas) donc (je suis aveugle)
-[a∨c⊃b,a∴b],b⊃p,(p∧q)≡x∴x⊃p
-a∧(b∨c)</textarea>
-                                <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()"> Ajouter les prémisses</button>
-
-                            </div>
-                        </div>
-                    </div>
+                    
                 </li>
 
                 <li>
@@ -1123,8 +1125,10 @@ a∧(b∨c)</textarea>
         <div class="content p-4 d-flex">
             <div id="myDiagramDiv"></div>
             </div>
-        </div>
+            
+    </div>
 
+    
     
     <div class="modal fade" id="openfile"  tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">

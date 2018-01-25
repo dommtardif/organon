@@ -1,6 +1,16 @@
+Text 
+  = arg:Argument _ "\n"* rest:Text*{
+    if (rest[0] && rest[0][0]) {
+    	for (var i = 0; i<rest[0].length;i++){
+        	arg.push(rest[0][i]);
+        }
+    }
+    return arg;
+}
+
 Argument
-  = _ head:(Premisse)+ _ Donc* _ tail:(Premisse)* _ {
-      return head.concat(tail);
+  = _ head:(Premisse)+ _ Donc* _ tail:(Premisse)*  _ {
+      return [head.concat(tail)];
     }
 
 Premisse = 
@@ -45,7 +55,7 @@ Premisse =
     }
 
 Primary "primary"
-  =  !Donc _ prim:([a-zA-Z0-9 ∧∨⊃≡\u00C0-\u017F])+ _  { return prim.join(""); }
+  =  !Donc _ prim:([a-zA-Z0-9 ∧∨⊃≡∼⊥∃∄∀\u00C0-\u017F])+ _  { return prim.join(""); }
 
 Donc
   = _ "donc" _ / _ "Donc" _ / _ "∴" _
