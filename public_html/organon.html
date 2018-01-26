@@ -621,23 +621,23 @@
                     hideui(myDiagram);
                 });
                 document.getElementById("menuBoiteEntree").addEventListener('click', function () {
+                    $('#boitepremisses').collapse('toggle');
                     if ($('#navbar').is(':visible')) {
                         hideui(myDiagram);
                     }
-
-                    $('#boitepremisses').collapse('toggle');
                     editor.refresh();
-
-                    $("#boitepremisses").draggable({
+                });
+                
+                $("#boitepremisses").draggable({
                         handle: ".card-header"
                     });
-
-                });
-                document.getElementById("fermerBoiteEntree").addEventListener('click', function () {
-                    if (!$('#navbar').is(':visible')) {
+                
+        document.getElementById("fermerBoiteEntree").addEventListener('click', function () {
+                $('#boitepremisses').collapse('hide');
+   
+                if (!$('#navbar').is(':visible')) {
                         hideui(myDiagram);
                     }
-                    $('#boitepremisses').collapse('hide');
                     editor.refresh();
                 });
 
