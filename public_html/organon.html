@@ -12,8 +12,13 @@
         <script src="./js/popper.js/umd/popper.min.js"></script>
         <script src="./js/twitter-bootstrap/js/bootstrap.min.js"></script>
         <script src="./js/gojs/go.js"></script>
+        <script src="./js/codemirror/codemirror.min.js"></script>
+        <script src="./js/codemirror/addon/edit/closebrackets.min.js"></script>
+        <script src="./js/codemirror/addon/edit/matchbrackets.min.js"></script>
+        <script src="./js/codemirror/addon/search/match-highlighter.min.js"></script>
+        <script src="./js/codemirror/addon/scroll/simplescrollbars.js"></script>
 
-        <script src="./js/bsadmin/js/bsadmin.js"></script>
+        <link href="./js/codemirror/addon/scroll/simplescrollbars.css" rel="stylesheet" type="text/css"/>
         <script src="./js/logparser/parser.js"></script>
 
         <script id="init">
@@ -685,15 +690,31 @@
                 myDiagram.toolManager.textEditingTool.defaultTextEditor = customEditor;
                 document.getElementById('files').addEventListener('change', handleFileSelect, false);
                 //importfromjson();
-                document.getElementById("clavierlogique").appendChild(setupLogicKeyboard(document.getElementById("premisses")));
+
                 document.getElementById("modelname").value = myDiagram.model.name;
                 document.getElementById("modelname").addEventListener('change', function () {
                     myDiagram.model.name = document.getElementById("modelname").value;
                 }, false);
-                $( function() {
-                    $( "#boitepremisses" ).draggable();
-                  } );
+                $(function () {
+                    $("#boitepremisses").draggable({handle: ".card-header"});
+
+                });
+                editor = CodeMirror.fromTextArea(document.getElementById('premisses'), {
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    matchBrackets: true,
+                    autoCloseBrackets: true, 
+                    highlightSelectionMatches: true,
+                    scrollbarStyle: "overlay"
+                });
+                $('.CodeMirror').resizable({
+                    resize: function () {
+                        editor.setSize($(this).width(), $(this).height());
+                    }
+                });
+                document.getElementById("clavierlogique").appendChild(setupLogicKeyboard(editor));
             }
+            var editor;
         </script>
         <script id="functions">
             function setupLogicKeyboard(customInput) {
@@ -766,10 +787,16 @@
 
                 var logickey = function () {
                     var content = customInput.value;
-                    var position = $("#" + customInput.getAttribute("id")).getCursorPosition()
-                    var newContent = content.substr(0, position) + this.innerHTML + content.substr(position);
-                    customInput.value = newContent;
-                    customInput.selectionEnd = position + 1;
+                    console.log(customInput);
+                    if (customInput instanceof HTMLInputElement) { //input type html
+                        var position = $("#" + customInput.getAttribute("id")).getCursorPosition();
+                        var newContent = content.substr(0, position) + this.innerHTML + content.substr(position);
+                        customInput.value = newContent;
+                        customInput.selectionEnd = position + 1;
+
+                    } else { // pour codemirror
+                        customInput.replaceSelection(this.innerHTML);
+                    }
                     customInput.focus();
 
                 };
@@ -1009,7 +1036,7 @@
         <link rel="stylesheet" href="./js/jqueryui/themes/base/jquery-ui.css">
         <link rel="stylesheet" href="./js/bsadmin/css/bsadmin.css">
         <link rel="stylesheet" href="./js/font-awesome/css/font-awesome.min.css">
-
+        <link rel="stylesheet" href="./js/codemirror/codemirror.min.css">
         <style>
             .page {
                 height: inherit;
@@ -1053,20 +1080,25 @@
                 height: 98vh;
                 display: block;
             }
-            /*            .sidebar {
-                    min-width: 200px;
-                    max-width: 100%;
-                    min-height: calc(100vh - 56px);
-                    transition: all 0.3s;
-                }*/
+
 
             .sidebar ul li span {
                 padding: .75rem 1rem;
                 color: rgba(255, 255, 255, .75);
             }
-            
-            #premisses 
+            .CodeMirror {
 
+                height: 15vh;
+                width: 35vw;
+
+            }
+            .cm-matchhighlight {background-color:buttonhighlight;}
+            .CodeMirror-matchingbracket{
+                background-color:buttonhighlight;
+                color:white;
+                font-weight: bolder;
+            }
+            .
         </style>
     </head>
 
@@ -1089,7 +1121,7 @@
                 </ul>
             </div>
         </nav>
-       
+
         <div class="d-flex page">
 
 
@@ -1116,8 +1148,10 @@
                                 if ($('#navbar').is(':visible')) {
                                     hideui();
                                 }
+
                                 $('#boitepremisses').collapse('toggle');
-"
+                                editor.refresh();
+                           "
                            >
                             <i class="fa fa-fw fa-file-text"></i> Boîte d'entrée
                         </a>
@@ -1145,7 +1179,7 @@
 
         </div>
 
- <div class="collapse" id="boitepremisses" style="left:50px;top:50px;position:absolute;min-width: 35vw;max-width:100%;min-height: 30vh;z-index: 6000;">
+        <div class="collapse" id="boitepremisses" style="left:50px;top:50px;position:absolute;min-width: 35vw;max-width:100%;min-height: 30vh;z-index: 6000;">
             <div class="card">
                 <div class="card-header">
                     <div class="float-right">
@@ -1154,7 +1188,9 @@
                                     if (!$('#navbar').is(':visible')) {
                                         hideui();
                                     }
-                                    $('#boitepremisses').collapse('toggle');
+                                    $('#boitepremisses').collapse('hide');
+                                    editor.refresh();
+
                             "
                             >
                             <i class="fa fa-fw fa-window-close fa-2x"></i>
@@ -1170,13 +1206,13 @@
 (être aveugle) équivaut à (ne pas voir),(je ne vois pas) donc (je suis aveugle)
 [a∨c⊃b,a∴b],b⊃p,(p∧q)≡x∴x⊃p
 a∧(b∨c)</textarea>
-                    
+
 
                 </div>
                 <div class="card-footer text-right">
-                        <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()"> Ajouter les prémisses</button>
+                    <button type="button" class="btn btn-primary" id="ajoutPremisses" onclick="ajouterPremisses()"> Ajouter les prémisses</button>
 
-                    </div>
+                </div>
             </div>
         </div>
 
