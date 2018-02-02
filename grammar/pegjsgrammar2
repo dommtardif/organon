@@ -1,0 +1,85 @@
+//Pour multiligne
+Text 
+  = _"\n"* arg:Argument _ rest:("\n" rest:Text {return rest})*{
+    if (rest[0] && rest[0][0]) {
+    	for (var i = 0; i<rest[0].length;i++){
+        	arg.push(rest[0][i]);
+        }
+    }
+    return arg;
+}
+	/
+    _"\n"* prem:(LangueNat/Premisse) _ rest:("\n" rest:Text{return rest})*{
+    prem = [prem]
+    if (rest[0] && rest[0][0]) {
+    	for (var i = 0; i<rest[0].length;i++){
+        	prem.push(rest[0][i]);
+        }
+    }
+    return prem;
+    }
+
+Argument
+  = _ head:(LangueNat/Premisse)+ _ Donc _ tail:(LangueNat/Premisse) _ {
+      return [head.concat(tail)];
+    }
+
+LangueNat = 
+    "("_ ante:Premisse _ ")" _ "et" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"∧"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "ou" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"∨"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "implique" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"⊃"+ "(" + post + ")";
+    }
+    /
+    _[s]i"i" _ "("_ ante:Premisse _ ")" _ "alors" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"⊃"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "si et seulement si" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"≡"+ "(" + post + ")";
+    }
+    /
+    "("_ ante:Premisse _ ")" _ "équivaut à" _ "("_ post:Premisse  _ ")" ","* {
+    	return "(" + ante + ")" +"≡"+ "(" + post + ")";
+    }
+Premisse = 
+    "[" _ arg:Argument _ "]" _ ","*{
+        return arg; 
+    }
+    / 
+    _  opuna1:OpUna*_ prim:Primary _ op:OpBin _  opuna2:OpUna* _ "(" _ prem:Premisse _ ")" _ ","*{
+    	return opuna1+prim + op + opuna2+"(" + prem + ")";
+    }
+    / 
+    _  opuna1:OpUna*_ "(" _ prem1:Primary _")" _ op:OpBin _  opuna2:OpUna* _ "(" _ prem2:Premisse _ ")" _ ","*{
+    	return opuna1+prem1+ op + opuna2+"(" + prem2 + ")";
+    }
+    /
+     _  opuna1:OpUna*_ "(" _ prem:Premisse _ ")" _ op:OpBin*_  opuna2:OpUna* _ prim:Primary* _ ","*{
+    	if (prim.length > 0) return opuna1 + "(" + prem + ")"+ op + opuna2+prim;
+        else return prem;
+    }
+    /
+    _  opuna1:OpUna* _ prim1:Primary _ tail:(op:OpBin _  opuna2:OpUna* _ prim2:Primary{return op+opuna2+prim2})* _ ","*{
+    	return opuna1+prim1+tail
+    }
+    
+OpBin
+  = [∧∨⊃≡]
+OpUna
+  = "~"
+Primary "primary"
+  =  !Donc _ prim:([a-zA-Z0-9 ⊥∃∄∀\u00C0-\u017F])+ _  { return prim.join(""); }
+
+Donc
+  = _ "donc" _ / _ "Donc" _ / _ "∴" _
+  
+_ "whitespace"
+  = [ \t\r]*
+              

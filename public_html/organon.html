@@ -619,6 +619,7 @@
                 });
                 document.getElementById("hideui").addEventListener('click', function () {
                     hideui(myDiagram);
+                    myDiagram.requestUpdate();
                 });
                 document.getElementById("menuBoiteEntree").addEventListener('click', function () {
                     $('#boitepremisses').collapse('toggle');
@@ -626,6 +627,7 @@
                         hideui(myDiagram);
                     }
                     editor.refresh();
+                   //myDiagram.requestUpdate();
                 });
                 
                 $("#boitepremisses").draggable({
@@ -639,6 +641,7 @@
                         hideui(myDiagram);
                     }
                     editor.refresh();
+                    //myDiagram.requestUpdate();
                 });
 
                 editor = CodeMirror.fromTextArea(document.getElementById('premisses'), {
@@ -1037,14 +1040,14 @@
             //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
             function hideui(diagram) {
                 if ($('#navbar').is(':visible')) {
-                    $('#navbar').fadeOut();
+                    $('#navbar').fadeOut('slow',function(){diagram.requestUpdate();});
                     document.getElementById('body').style.height = '100vh';
                 } else {
-                    $('#navbar').fadeIn();
+                    $('#navbar').fadeIn('slow',function(){diagram.requestUpdate();});
                     document.getElementById('body').style.height = '100%';
                 }
                 $('.sidebar').toggleClass('toggled');
-                diagram.requestUpdate();
+                //diagram.requestUpdate();
             }
 
         </script>
@@ -1202,7 +1205,7 @@
                     <textarea style="resize: both;min-height:100px;width:100%;" id="premisses">Si (Socrate est un homme) alors (Socrate est mortel),(Socrate est un homme) donc (Socrate est mortel)
 (a∧(b∨c))⊃c,b∧a∴c
 (être aveugle) équivaut à (ne pas voir),(je ne vois pas) donc (je suis aveugle)
-[a∨c⊃b,a∴b],b⊃p,(p∧q)≡x∴x⊃p
+[(a∨c)⊃b,a∴b],b⊃p,(p∧q)≡x∴x⊃p
 a∧(b∨c)</textarea>
 
                 </div>
