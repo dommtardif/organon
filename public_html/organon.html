@@ -6,7 +6,7 @@
         <meta name="description" content="Visualisateur de logique" />
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <script src="./js/jquery/jquery.min.js"></script>
+        <script src="js/jquery/jquery.min.js"></script>
 
 
 
@@ -236,7 +236,7 @@
                                 // define the node's outer shape, which will surround the TextBlock
                                 GOMAKE(go.Shape, "RoundedRectangle", {
                                     parameter1: 20, // the corner has a large radius
-                                    fill: "gold",
+                                    fill: "white",
                                     stroke: null,
                                     portId: "", // this Shape is the Node's port, not the whole Node
                                     fromLinkable: true,
@@ -318,7 +318,7 @@
                                 // define the node's outer shape, which will surround the TextBlock
                                 GOMAKE(go.Shape, "RoundedRectangle", {
                                     parameter1: 20, // the corner has a large radius
-                                    fill: "blue",
+                                    fill: "white",
                                     stroke: null,
                                     portId: "", // this Shape is the Node's port, not the whole Node
                                     fromLinkable: true,
@@ -465,11 +465,12 @@
                         GOMAKE(go.Group, "Vertical", {
                             selectionObjectName: "PANEL", // selection handle goes around shape, not label
                             ungroupable: true,
-                            layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
-                                    {
-                                        defaultSpringLength: 25,
-                                        defaultElectricalCharge: 30
-                                    }),
+//                            layout: GOMAKE(go.ForceDirectedLayout, // automatically spread nodes apart while dragging
+//                                    {
+//                                        defaultSpringLength: 25,
+//                                        defaultElectricalCharge: 30
+//                                    }),
+                            layout: GOMAKE(go.TreeLayout,{}),
                             fromSpot: go.Spot.Bottom, // coming out from middle-right
                             toSpot: go.Spot.Top
                         }, // enable Ctrl-Shift-G to ungroup a selected Group
@@ -600,7 +601,7 @@
                             document.title = document.title.substr(0, idx);
                     }
                 });
-                myDiagram.model.name = "Diagramme"
+                myDiagram.model.name = "Diagramme";
                 // Set the HTMLInfo:
                 myDiagram.toolManager.textEditingTool.defaultTextEditor = customEditor;
 
@@ -955,6 +956,8 @@
             }
 
             function parsetoarray(ar, diagram) {
+                //TODO quand on va passer a nearley, ne pas oublier qu'on a une couche
+                //de matrice supplementaire donc ar[0][i]
                 for (var i = 0; i < ar.length; i++) {
                     arraytoargument(ar[i], diagram);
                 }
@@ -962,7 +965,7 @@
 
             function arraytoargument(ar, diagram) {
                 console.log(ar);
-                var premisses = ar
+                var premisses = ar;
                 var nodes = [];
                 for (var i = 0; i < premisses.length; i++) {
                     if (premisses[i].constructor === Array) {
@@ -970,7 +973,7 @@
                     } else {
                         nodes[i] = {
                             text: premisses[i].trim()
-                        }
+                        };
                     }
                 }
                 diagram.startTransaction("creating nodes");
@@ -1018,7 +1021,7 @@
                     } else if (document.msExitFullscreen) {
                         document.msExitFullscreen();
                     }
-                    myDiagram.currentTool.doCancel()
+                    myDiagram.currentTool.doCancel();
                 }
             }
             (function ($, undefined) {
@@ -1035,7 +1038,7 @@
                         pos = Sel.text.length - SelLength;
                     }
                     return pos;
-                }
+                };
             })(jQuery);
             //usage: getreqfullscreen().call(targetelement) // open full screen on targetelement
             function hideui(diagram) {
@@ -1048,18 +1051,18 @@
                 }
                 $('.sidebar').toggleClass('toggled');
                 //diagram.requestUpdate();
-            }
+            };
 
         </script>
-        <link href="./js/codemirror/addon/scroll/simplescrollbars.css" rel="stylesheet" type="text/css" />
+        <link href="js/codemirror/addon/scroll/simplescrollbars.css" rel="stylesheet" type="text/css" />
 
-        <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap-reboot.min.css">
-        <link rel="stylesheet" href="./js/twitter-bootstrap/css/bootstrap.min.css">
+        <link rel="stylesheet" href="js/twitter-bootstrap/css/bootstrap-reboot.min.css">
+        <link rel="stylesheet" href="js/twitter-bootstrap/css/bootstrap.min.css">
 
-        <link rel="stylesheet" href="./js/jqueryui/themes/base/jquery-ui.css">
-        <link rel="stylesheet" href="./js/bsadmin/css/bsadmin.css">
-        <link rel="stylesheet" href="./js/font-awesome/css/font-awesome.min.css">
-        <link rel="stylesheet" href="./js/codemirror/codemirror.min.css">
+        <link rel="stylesheet" href="js/jqueryui/themes/base/jquery-ui.css">
+        <link rel="stylesheet" href="js/bsadmin/css/bsadmin.css">
+        <link rel="stylesheet" href="js/font-awesome/css/font-awesome.min.css">
+        <link rel="stylesheet" href="js/codemirror/codemirror.min.css">
         <style>
             .page {
                 height: inherit;
@@ -1277,17 +1280,24 @@ a∧(b∨c)</textarea>
 
 
 
-        <script src="./js/jqueryui/jquery-ui.min.js"></script>
-        <script src="./js/popper.js/umd/popper.min.js"></script>
-        <script src="./js/twitter-bootstrap/js/bootstrap.min.js"></script>
-        <script src="./js/gojs/go.js"></script>
-        <script src="./js/codemirror/codemirror.min.js"></script>
-        <script src="./js/codemirror/addon/edit/closebrackets.min.js"></script>
-        <script src="./js/codemirror/addon/edit/matchbrackets.min.js"></script>
-        <script src="./js/codemirror/addon/search/match-highlighter.min.js"></script>
-        <script src="./js/codemirror/addon/scroll/simplescrollbars.js"></script>
-
-        <script src="./js/logparser/parser.js"></script>
+        <script src="js/jqueryui/jquery-ui.min.js"></script>
+        <script src="js/popper.js/umd/popper.min.js"></script>
+        <script src="js/twitter-bootstrap/js/bootstrap.min.js"></script>
+        <script src="js/gojs/go.js"></script>
+        <script src="js/codemirror/codemirror.min.js"></script>
+        <script src="js/codemirror/addon/edit/closebrackets.min.js"></script>
+        <script src="js/codemirror/addon/edit/matchbrackets.min.js"></script>
+        <script src="js/codemirror/addon/search/match-highlighter.min.js"></script>
+        <script src="js/codemirror/addon/scroll/simplescrollbars.js"></script>
+        <script src="js/logparser/parser.js"></script>
     </body>
 
 </html>
+//TODO Permettre simple deduction sans groupement
+//TODO Permettre l'ajout d'hypothese
+//TODO Placement des premisses en arbre vertical
+//TODO Revision de theorie
+//TODO Revoir ux avec modele
+//TODO Grammaire -> langue nat dans Nearley
+//TODO Penser langage placeholder pour symboles
+//Epurer l'interface
